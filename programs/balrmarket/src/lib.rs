@@ -17,6 +17,6 @@ pub mod balrmarket {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+        initialize_global_state::handler(ctx)
     }
 }

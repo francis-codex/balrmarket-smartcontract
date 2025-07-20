@@ -1,3 +1,3 @@
-pub mod initialize;
+pub mod initialize_global_state;
 
-pub use initialize::*;
+pub use initialize_global_state::*;
