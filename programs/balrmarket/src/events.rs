@@ -1,0 +1,104 @@
+use anchor_lang::prelude::*;
+
+#[event]
+pub struct GlobalStateInitialized {
+    pub admin: Pubkey,
+    pub platform_fee_primary: u16,
+    pub platform_fee_secondary: u16,
+}
+
+#[event]
+pub struct MarketCreated {
+    pub market_id: String,
+    pub team_a: String,
+    pub team_b: String,
+    pub match_timestamp: i64,
+    pub admin: Pubkey,
+    pub created_at: i64,
+}
+
+#[event]
+pub struct EventCreated {
+    pub event_id: String,
+    pub market_id: String,
+    pub question: String,
+    pub shares_yes: u32,
+    pub shares_no: u32,
+    pub yes_share_price: u64,
+    pub no_share_price: u64,
+    pub primary_market_close: i64,
+    pub secondary_market_open: i64,
+    pub secondary_market_close: i64,
+    pub admin: Pubkey,
+    pub timestamp: i64,
+    pub opta_probability_yes: u16,
+    pub opta_probability_no: u16,
+}
+
+#[event]
+pub struct ShareMinted {
+    pub event_id: String,
+    pub yes_owner: Pubkey,
+    pub no_owner: Pubkey,
+    pub quantity: u32,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct PrimaryMarketClosed {
+    pub event_id: String,
+    pub total_yes_minted: u32,
+    pub total_no_minted: u32,
+    pub unmatched_orders: u32,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct RefundIssued {
+    pub user: Pubkey,
+    pub event_id: String,
+    pub amount: u64,
+    pub share_type: String,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct ShareListed {
+    pub event_id: String,
+    pub seller: Pubkey,
+    pub share_type: String,
+    pub quantity: u32,
+    pub price: u64,
+    pub order_id: String,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct ShareTransferred {
+    pub event_id: String,
+    pub from: Pubkey,
+    pub to: Pubkey,
+    pub share_type: String,
+    pub quantity: u32,
+    pub price: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct WinningsDisbursed {
+    pub event_id: String,
+    pub winner: Pubkey,
+    pub winning_outcome: bool,
+    pub shares_claimed: u32,
+    pub payout_amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct MarketResolved {
+    pub event_id: String,
+    pub market_id: String,
+    pub winning_outcome: bool,
+    pub total_payout_pool: u64,
+    pub resolution_timestamp: i64,
+}
