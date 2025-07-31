@@ -1,23 +1,57 @@
 {
   "license": "ISC",
+  "name": "balrmarket-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive test suite for BalrMarket event creation",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "test": "anchor test",
+    "test:instructions": "anchor test tests/instructions/",
+    "test:state": "anchor test tests/state/",
+    "test:utils": "anchor test tests/utils/",
+    "test:integration": "anchor test tests/integration/",
+    "test:global-state": "anchor test tests/instructions/test_initialize_global_state.ts",
+    "test:market": "anchor test tests/instructions/test_create_market.ts",
+    "test:event": "anchor test tests/instructions/test_create_event.ts",
+    "test:sizes": "anchor test tests/state/test_account_sizes.ts",
+    "test:workflow": "anchor test tests/integration/test_full_workflow.ts",
+    "test:watch": "anchor test --watch",
+    "test:verbose": "anchor test -- --verbose",
+    "test:parallel": "anchor test --parallel",
+    "coverage": "nyc anchor test",
+    "build": "anchor build",
+    "deploy:devnet": "anchor deploy --provider.cluster devnet",
+    "deploy:localnet": "anchor deploy --provider.cluster localnet"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
-    "@solana/spl-token": "^0.4.13",
+    "@solana/spl-token": "^0.1.8",
     "@solana/web3.js": "^1.98.2"
   },
   "devDependencies": {
-    "@solana/spl-token-registry": "^0.2.4574",
+    "@solana/spl-token-registry": "^0.2.7",
     "@types/bn.js": "^5.1.0",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
+    "@types/node": "^24.1.0",
+    "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@typescript-eslint/parser": "^5.57.0",
     "chai": "^5.2.1",
+    "eslint": "^8.37.0",
     "mocha": "^11.7.1",
+    "nyc": "^15.1.0",
     "prettier": "^2.6.2",
     "ts-mocha": "^11.1.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
-  }
+  },
+  "keywords": [
+    "solana",
+    "blockchain",
+    "prediction-market",
+    "testing",
+    "anchor"
+  ],
+  "author": "BalrMarket Team"
 }

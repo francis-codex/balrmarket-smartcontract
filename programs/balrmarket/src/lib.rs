@@ -14,7 +14,7 @@ pub use events::*;
 pub use error::*;
 pub use utils::*;
 
-declare_id!("EUF5zgyR7ZpKbx6kFqGr7FjGCevrCcDuWW9YJXpiuq8H");
+declare_id!("CYCLSN9sVJGKo4xy3daXvH3KFD66wPgDvAuFVRhc6RDq");
 
 #[program]
 pub mod balrmarket {

@@ -6,17 +6,20 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-balrmarket = "EUF5zgyR7ZpKbx6kFqGr7FjGCevrCcDuWW9YJXpiuq8H"
+balrmarket = "CYCLSN9sVJGKo4xy3daXvH3KFD66wPgDvAuFVRhc6RDq"
+
+[programs.devnet]
+balrmarket = "CYCLSN9sVJGKo4xy3daXvH3KFD66wPgDvAuFVRhc6RDq"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/utils/test_utils.ts tests/instructions/test_initialize_global_state.ts tests/instructions/test_create_market.ts tests/instructions/test_create_event.ts tests/state/test_account_sizes.ts"
 
 [test]
 startup_wait = 5000
