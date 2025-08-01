@@ -1,4 +1,7 @@
 #![allow(unexpected_cfgs)]
+#[warn(unused_imports)]
+#[warn(deprecated)]
+
 
 pub mod instructions;
 pub mod state;

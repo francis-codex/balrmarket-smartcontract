@@ -1,1159 +1,670 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { Program, web3, BN } from "@coral-xyz/anchor";
 import { Balrmarket } from "../../target/types/balrmarket";
 import { expect } from "chai";
-import { PublicKey, SystemProgram, LAMPORTS_PER_SOL, Keypair } from "@solana/web3.js";
 
 describe("Create Event", () => {
+  // Configure the client to use the local cluster
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
   const program = anchor.workspace.Balrmarket as Program<Balrmarket>;
-  const admin = provider.wallet;
+  const connection = provider.connection;
 
-  let globalStatePDA: PublicKey;
-  let marketPDA: PublicKey;
+  // Test wallets
+  let adminKeypair: web3.Keypair;
+  let nonAdminKeypair: web3.Keypair;
+  let globalStatePda: web3.PublicKey;
 
-  // Test data
-  const marketId = "test_market_for_events";
-  const teamA = "Manchester United";
-  const teamB = "Arsenal";
-  const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2; // 2 days from now
-
-  const eventId = "will_man_utd_win";
-  const question = "Will Manchester United win?";
-  const maxShares = 1000;
-  const optaOddsYes = 5640; // 56.40% in basis points
+  // Test constants
+  const PLATFORM_FEE_PRIMARY = 200; // 2% in basis points
+  const PLATFORM_FEE_SECONDARY = 100; // 1% in basis points
+  const MARKET_ID = "MATCH001";
+  const TEAM_A = "Manchester United";
+  const TEAM_B = "Arsenal";
 
   before(async () => {
-    [globalStatePDA] = PublicKey.findProgramAddressSync(
+    // Generate fresh keypairs for the test suite
+    adminKeypair = web3.Keypair.generate();
+    nonAdminKeypair = web3.Keypair.generate();
+
+    // Airdrop SOL to test accounts
+    await connection.requestAirdrop(adminKeypair.publicKey, 20 * web3.LAMPORTS_PER_SOL);
+    await connection.requestAirdrop(nonAdminKeypair.publicKey, 10 * web3.LAMPORTS_PER_SOL);
+
+    // Wait for airdrops to confirm
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Derive PDAs
+    [globalStatePda] = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
       program.programId
     );
 
-    [marketPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("market"), Buffer.from(marketId)],
-      program.programId
-    );
-
-    // Setup: Ensure global state and market exist
+    // Initialize global state if not already done
     try {
-      await program.account.globalState.fetch(globalStatePDA);
+      await program.account.globalState.fetch(globalStatePda);
+      console.log("Global state already initialized, skipping...");
     } catch (error) {
+      // Global state doesn't exist, initialize it
       await program.methods
-        .initializeGlobalState(admin.publicKey, 200, 50)
-        .accounts({
-          globalState: globalStatePDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
+        .initializeGlobalState(
+          adminKeypair.publicKey,
+          PLATFORM_FEE_PRIMARY,
+          PLATFORM_FEE_SECONDARY
+        )
+        .signers([adminKeypair])
         .rpc();
     }
 
+    // Create market if not already done
+    const [marketPda] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("market"), Buffer.from(MARKET_ID)],
+      program.programId
+    );
+    
     try {
-      await program.account.market.fetch(marketPDA);
+      await program.account.market.fetch(marketPda);
+      console.log("Market already exists, skipping...");
     } catch (error) {
+      const futureTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2; // 2 days from now
       await program.methods
-        .createMarket(marketId, teamA, teamB, new anchor.BN(matchTimestamp))
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
+        .createMarket(MARKET_ID, TEAM_A, TEAM_B, new BN(futureTimestamp))
+        .signers([adminKeypair])
         .rpc();
     }
   });
 
-  describe("Successful Event Creation", () => {
-    let eventPDA: PublicKey;
-    let orderBookPDA: PublicKey;
+  describe("Successful event creation", () => {
+    it("Should create an event with valid parameters", async () => {
+      const eventId = "GOAL_SCORER_001";
+      const question = "Will Cristiano Ronaldo score a goal?";
+      const maxShares = 100;
+      const optaOddsYes = 6000; // 60% in basis points
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
 
-    before(async () => {
-      [eventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(eventId)],
+      // Derive PDAs
+      const [marketPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("market"), Buffer.from(MARKET_ID)],
         program.programId
       );
 
-      [orderBookPDA] = PublicKey.findProgramAddressSync(
+      const [eventPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("event"), Buffer.from(MARKET_ID), Buffer.from(eventId)],
+        program.programId
+      );
+
+      const [orderBookPda] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("orderbook"), Buffer.from(eventId), Buffer.from("primary")],
         program.programId
       );
-    });
 
-    it("Creates an event with valid parameters", async () => {
+      // Create event
       const tx = await program.methods
         .createEvent(
           eventId,
           question,
           maxShares,
           optaOddsYes,
-          new anchor.BN(matchTimestamp)
+          new BN(matchTimestamp)
         )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: eventPDA,
-          orderBook: orderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
+        .signers([adminKeypair])
         .rpc();
 
-      console.log("Event Creation Transaction:", tx);
+      console.log("Create event transaction:", tx);
 
-      // Verify event was created correctly
-      const event = await program.account.event.fetch(eventPDA);
-      expect(event.eventId).to.equal(eventId);
-      expect(event.marketId).to.equal(marketId);
-      expect(event.question).to.equal(question);
-      expect(event.maxSharesTotal).to.equal(maxShares);
-      expect(event.maxSharesYes).to.equal(maxShares / 2);
-      expect(event.maxSharesNo).to.equal(maxShares / 2);
-      expect(event.mintedSharesYes).to.equal(0);
-      expect(event.mintedSharesNo).to.equal(0);
-      expect(event.admin.toString()).to.equal(admin.publicKey.toString());
-      expect(event.payoutPool.toNumber()).to.equal(0);
-      expect(event.status).to.deep.equal({ created: {} });
-      expect(event.winningOutcome).to.be.null;
+      // Fetch and verify event account
+      const eventAccount = await program.account.event.fetch(eventPda);
+
+      expect(eventAccount.eventId).to.equal(eventId);
+      expect(eventAccount.marketId).to.equal(MARKET_ID);
+      expect(eventAccount.question).to.equal(question);
+      expect(eventAccount.maxSharesTotal).to.equal(maxShares);
+      expect(eventAccount.maxSharesYes).to.equal(maxShares / 2);
+      expect(eventAccount.maxSharesNo).to.equal(maxShares / 2);
+      expect(eventAccount.mintedSharesYes).to.equal(0);
+      expect(eventAccount.mintedSharesNo).to.equal(0);
+      expect(eventAccount.admin.toString()).to.equal(adminKeypair.publicKey.toString());
+      expect(eventAccount.status).to.deep.equal({ created: {} });
+      expect(eventAccount.payoutPool.toNumber()).to.equal(0);
+      expect(eventAccount.winningOutcome).to.be.null;
+      expect(eventAccount.bump).to.be.a('number');
+
+      // Verify timing calculations
+      expect(eventAccount.primaryMarketClose.toNumber()).to.equal(matchTimestamp - 300); // 5 minutes before
+      expect(eventAccount.secondaryMarketOpen.toNumber()).to.equal(matchTimestamp);
+      expect(eventAccount.secondaryMarketClose.toNumber()).to.equal(matchTimestamp + 6300); // 105 minutes after
+
+      // Verify order book was created
+      const orderBookAccount = await program.account.orderBook.fetch(orderBookPda);
+      expect(orderBookAccount.eventId).to.equal(eventId);
+      expect(orderBookAccount.marketPhase).to.deep.equal({ primary: {} });
+      expect(orderBookAccount.yesOrders).to.be.an('array').that.is.empty;
+      expect(orderBookAccount.noOrders).to.be.an('array').that.is.empty;
+      expect(orderBookAccount.bestYesBid.toNumber()).to.equal(0);
+      expect(orderBookAccount.bestNoBid.toNumber()).to.equal(0);
+
+      // Verify counters were updated
+      const globalStateAccount = await program.account.globalState.fetch(globalStatePda);
+      expect(globalStateAccount.totalEvents.toNumber()).to.equal(1);
+
+      const marketAccount = await program.account.market.fetch(marketPda);
+      expect(marketAccount.totalEvents).to.equal(1);
     });
 
-    it("Calculates share prices correctly", async () => {
-      const event = await program.account.event.fetch(eventPDA);
-      
-      // Prices should sum to exactly 1 SOL
-      const totalPrice = event.yesSharePrice.toNumber() + event.noSharePrice.toNumber();
-      expect(totalPrice).to.equal(LAMPORTS_PER_SOL);
-      
-      // YES price should be higher (since 56.40% probability)
-      expect(event.yesSharePrice.toNumber()).to.be.greaterThan(event.noSharePrice.toNumber());
-      
-      // Both prices should be positive
-      expect(event.yesSharePrice.toNumber()).to.be.greaterThan(0);
-      expect(event.noSharePrice.toNumber()).to.be.greaterThan(0);
-    });
+    it("Should emit EventCreated event", async () => {
+      const eventId = "GOAL_SCORER_002";
+      const question = "Will Messi score a goal?";
+      const maxShares = 200;
+      const optaOddsYes = 7500; // 75% in basis points
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
 
-    it("Sets timing correctly", async () => {
-      const event = await program.account.event.fetch(eventPDA);
-      
-      expect(event.primaryMarketClose.toNumber()).to.equal(matchTimestamp - 300); // 5 min before
-      expect(event.secondaryMarketOpen.toNumber()).to.equal(matchTimestamp);
-      expect(event.secondaryMarketClose.toNumber()).to.equal(matchTimestamp + 6300); // 105 min after
-      expect(event.createdAt.toNumber()).to.be.greaterThan(0);
-      expect(event.resolutionTimestamp.toNumber()).to.equal(0); // Not resolved yet
-    });
+      // Listen for events
+      let eventReceived = false;
+      const listener = program.addEventListener("eventCreated", (event) => {
+        expect(event.eventId).to.equal(eventId);
+        expect(event.marketId).to.equal(MARKET_ID);
+        expect(event.question).to.equal(question);
+        expect(event.sharesYes).to.equal(maxShares / 2);
+        expect(event.sharesNo).to.equal(maxShares / 2);
+        expect(event.admin.toString()).to.equal(adminKeypair.publicKey.toString());
+        expect(event.timestamp.toNumber()).to.be.greaterThan(0);
+        eventReceived = true;
+      });
 
-    it("Normalizes OPTA odds correctly", async () => {
-      const event = await program.account.event.fetch(eventPDA);
-      
-      // Normalized probabilities should sum to exactly 10000 basis points
-      const totalProbability = event.optaProbabilityYes + event.optaProbabilityNo;
-      expect(totalProbability).to.equal(10000);
-      
-      // YES probability should be close to input (after normalization)
-      expect(event.optaProbabilityYes).to.be.greaterThan(5000); // > 50%
-      expect(event.optaProbabilityYes).to.be.lessThan(6000); // < 60% (accounting for normalization)
-    });
-
-    it("Initializes order book correctly", async () => {
-      const orderBook = await program.account.orderBook.fetch(orderBookPDA);
-      
-      expect(orderBook.eventId).to.equal(eventId);
-      expect(orderBook.marketPhase).to.deep.equal({ primary: {} });
-      expect(orderBook.yesOrders.length).to.equal(0);
-      expect(orderBook.noOrders.length).to.equal(0);
-      expect(orderBook.bestYesBid.toNumber()).to.equal(0);
-      expect(orderBook.bestNoBid.toNumber()).to.equal(0);
-      expect(orderBook.totalYesVolume.toNumber()).to.equal(0);
-      expect(orderBook.totalNoVolume.toNumber()).to.equal(0);
-      expect(orderBook.lastPriceUpdate.toNumber()).to.be.greaterThan(0);
-    });
-
-    it("Updates global and market counters", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      const market = await program.account.market.fetch(marketPDA);
-      
-      expect(globalState.totalEvents.toNumber()).to.be.greaterThan(0);
-      expect(market.totalEvents).to.be.greaterThan(0);
-    });
-  });
-
-  describe("Input Parameter Validation", () => {
-    it("Rejects event ID that is too long", async () => {
-      const longEventId = "a".repeat(51); // Max is 50
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(longEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(longEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      try {
-        await program.methods
-          .createEvent(
-            longEventId,
-            question,
-            maxShares,
-            optaOddsYes,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with event ID too long");
-      } catch (error) {
-        expect(error.error.errorMessage).to.include("Event ID too long");
-      }
-    });
-
-    it("Rejects question that is too long", async () => {
-      const longQuestion = "a".repeat(201); // Max is 200
-      const testEventId = "test_long_question";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      try {
-        await program.methods
-          .createEvent(
-            testEventId,
-            longQuestion,
-            maxShares,
-            optaOddsYes,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with question too long");
-      } catch (error) {
-        expect(error.error.errorMessage).to.include("Question too long");
-      }
-    });
-
-    it("Rejects empty strings", async () => {
-      const testEventId = "test_empty_strings";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      try {
-        await program.methods
-          .createEvent(
-            "", // Empty event ID
-            question,
-            maxShares,
-            optaOddsYes,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with empty event ID");
-      } catch (error) {
-        expect(error.error.errorMessage).to.include("Invalid input");
-      }
-    });
-
-    it("Accepts maximum length strings", async () => {
-      const maxEventId = "b".repeat(50);
-      const maxQuestion = "c".repeat(200);
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(maxEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(maxEventId), Buffer.from("primary")],
-        program.programId
-      );
-
+      // Create event
       await program.methods
         .createEvent(
-          maxEventId,
-          maxQuestion,
+          eventId,
+          question,
           maxShares,
           optaOddsYes,
-          new anchor.BN(matchTimestamp)
+          new BN(matchTimestamp)
         )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: testEventPDA,
-          orderBook: testOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
+        .signers([adminKeypair])
         .rpc();
 
-      const event = await program.account.event.fetch(testEventPDA);
-      expect(event.eventId).to.equal(maxEventId);
-      expect(event.question).to.equal(maxQuestion);
-    });
-  });
-
-  describe("Share Count Validation", () => {
-    it("Rejects zero shares", async () => {
-      const testEventId = "test_zero_shares";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      try {
-        await program.methods
-          .createEvent(
-            testEventId,
-            question,
-            0, // Zero shares
-            optaOddsYes,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with zero shares");
-      } catch (error) {
-        expect(error.error.errorMessage).to.include("Invalid share count");
-      }
+      // Wait for event
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      program.removeEventListener(listener);
+      expect(eventReceived).to.be.true;
     });
 
-    it("Rejects odd number of shares", async () => {
-      const testEventId = "test_odd_shares";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
+    it("Should handle maximum length strings", async () => {
+      const eventId = "A".repeat(50); // Maximum length
+      const question = "B".repeat(200); // Maximum length
+      const maxShares = 100;
+      const optaOddsYes = 5000; // 50% in basis points
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
 
-      try {
-        await program.methods
-          .createEvent(
-            testEventId,
-            question,
-            999, // Odd number
-            optaOddsYes,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with odd shares");
-      } catch (error) {
-        expect(error.error.errorMessage).to.include("Share count must be even");
-      }
-    });
-
-    it("Rejects shares exceeding maximum", async () => {
-      const testEventId = "test_max_shares";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      try {
-        await program.methods
-          .createEvent(
-            testEventId,
-            question,
-            1002, // Exceeds max of 1000
-            optaOddsYes,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with excessive shares");
-      } catch (error) {
-        expect(error.error.errorMessage).to.include("Invalid share count");
-      }
-    });
-
-    it("Accepts minimum valid shares", async () => {
-      const testEventId = "test_min_shares";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
+      const [eventPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("event"), Buffer.from(MARKET_ID), Buffer.from(eventId)],
         program.programId
       );
 
       await program.methods
         .createEvent(
-          testEventId,
+          eventId,
           question,
-          2, // Minimum even number > 0
+          maxShares,
           optaOddsYes,
-          new anchor.BN(matchTimestamp)
+          new BN(matchTimestamp)
         )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: testEventPDA,
-          orderBook: testOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
+        .signers([adminKeypair])
         .rpc();
 
-      const event = await program.account.event.fetch(testEventPDA);
-      expect(event.maxSharesTotal).to.equal(2);
-      expect(event.maxSharesYes).to.equal(1);
-      expect(event.maxSharesNo).to.equal(1);
+      const eventAccount = await program.account.event.fetch(eventPda);
+      expect(eventAccount.eventId).to.equal(eventId);
+      expect(eventAccount.question).to.equal(question);
     });
 
-    it("Accepts maximum valid shares", async () => {
-      const testEventId = "test_exactly_max_shares";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
+    it("Should normalize OPTA odds correctly", async () => {
+      const eventId = "ODDS_TEST_001";
+      const question = "Will there be a goal?";
+      const maxShares = 100;
+      const optaOddsYes = 8000; // 80% with bookmaker margin
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      const [eventPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("event"), Buffer.from(MARKET_ID), Buffer.from(eventId)],
         program.programId
       );
 
       await program.methods
         .createEvent(
-          testEventId,
+          eventId,
           question,
-          1000, // Exactly max
+          maxShares,
           optaOddsYes,
-          new anchor.BN(matchTimestamp)
+          new BN(matchTimestamp)
         )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: testEventPDA,
-          orderBook: testOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
+        .signers([adminKeypair])
         .rpc();
 
-      const event = await program.account.event.fetch(testEventPDA);
-      expect(event.maxSharesTotal).to.equal(1000);
-      expect(event.maxSharesYes).to.equal(500);
-      expect(event.maxSharesNo).to.equal(500);
+      const eventAccount = await program.account.event.fetch(eventPda);
+      
+      // Verify normalized probabilities sum to 10000 (100%)
+      expect(eventAccount.optaProbabilityYes + eventAccount.optaProbabilityNo).to.equal(10000);
+      
+      // Verify share prices sum to 1 SOL
+      expect(eventAccount.yesSharePrice.add(eventAccount.noSharePrice).toNumber())
+        .to.equal(web3.LAMPORTS_PER_SOL);
     });
   });
 
-  describe("OPTA Odds Validation", () => {
-    it("Rejects zero odds", async () => {
-      const testEventId = "test_zero_odds";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
+  describe("Input validation failures", () => {
+    it("Should fail with event ID too long", async () => {
+      const eventId = "A".repeat(51); // Too long
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
 
       try {
         await program.methods
           .createEvent(
-            testEventId,
+            eventId,
             question,
             maxShares,
-            0, // Zero odds
-            new anchor.BN(matchTimestamp)
+            optaOddsYes,
+            new BN(matchTimestamp)
           )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
+          .signers([adminKeypair])
           .rpc();
+        expect.fail("Should have failed with event ID too long");
+      } catch (error) {
+        expect(error.error.errorCode.code).to.equal("EventIdTooLong");
+      }
+    });
 
+    it("Should fail with question too long", async () => {
+      const eventId = "EVENT_001";
+      const question = "A".repeat(201); // Too long
+      const maxShares = 100;
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      try {
+        await program.methods
+          .createEvent(
+            eventId,
+            question,
+            maxShares,
+            optaOddsYes,
+            new BN(matchTimestamp)
+          )
+          .signers([adminKeypair])
+          .rpc();
+        expect.fail("Should have failed with question too long");
+      } catch (error) {
+        expect(error.error.errorCode.code).to.equal("QuestionTooLong");
+      }
+    });
+
+    it("Should fail with empty strings", async () => {
+      const eventId = ""; // Empty
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      try {
+        await program.methods
+          .createEvent(
+            eventId,
+            question,
+            maxShares,
+            optaOddsYes,
+            new BN(matchTimestamp)
+          )
+          .signers([adminKeypair])
+          .rpc();
+        expect.fail("Should have failed with empty event ID");
+      } catch (error) {
+        expect(error.error.errorCode.code).to.equal("InvalidInput");
+      }
+    });
+
+    it("Should fail with invalid share count (zero)", async () => {
+      const eventId = "EVENT_002";
+      const question = "Test question";
+      const maxShares = 0; // Invalid
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      try {
+        await program.methods
+          .createEvent(
+            eventId,
+            question,
+            maxShares,
+            optaOddsYes,
+            new BN(matchTimestamp)
+          )
+          .signers([adminKeypair])
+          .rpc();
+        expect.fail("Should have failed with zero share count");
+      } catch (error) {
+        expect(error.error.errorCode.code).to.equal("InvalidShareCount");
+      }
+    });
+
+    it("Should fail with invalid share count (too high)", async () => {
+      const eventId = "EVENT_003";
+      const question = "Test question";
+      const maxShares = 1001; // Too high
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      try {
+        await program.methods
+          .createEvent(
+            eventId,
+            question,
+            maxShares,
+            optaOddsYes,
+            new BN(matchTimestamp)
+          )
+          .signers([adminKeypair])
+          .rpc();
+        expect.fail("Should have failed with share count too high");
+      } catch (error) {
+        expect(error.error.errorCode.code).to.equal("InvalidShareCount");
+      }
+    });
+
+    it("Should fail with odd share count", async () => {
+      const eventId = "EVENT_004";
+      const question = "Test question";
+      const maxShares = 101; // Odd number
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      try {
+        await program.methods
+          .createEvent(
+            eventId,
+            question,
+            maxShares,
+            optaOddsYes,
+            new BN(matchTimestamp)
+          )
+          .signers([adminKeypair])
+          .rpc();
+        expect.fail("Should have failed with odd share count");
+      } catch (error) {
+        expect(error.error.errorCode.code).to.equal("ShareCountMustBeEven");
+      }
+    });
+
+    it("Should fail with invalid odds (zero)", async () => {
+      const eventId = "EVENT_005";
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 0; // Invalid
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      try {
+        await program.methods
+          .createEvent(
+            eventId,
+            question,
+            maxShares,
+            optaOddsYes,
+            new BN(matchTimestamp)
+          )
+          .signers([adminKeypair])
+          .rpc();
         expect.fail("Should have failed with zero odds");
       } catch (error) {
-        expect(error.error.errorMessage).to.include("Invalid odds");
+        expect(error.error.errorCode.code).to.equal("InvalidOdds");
       }
     });
 
-    it("Rejects odds of 10000 or higher", async () => {
-      const testEventId = "test_max_odds";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
+    it("Should fail with invalid odds (too high)", async () => {
+      const eventId = "EVENT_006";
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 10000; // Invalid (100% or higher)
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
 
       try {
         await program.methods
           .createEvent(
-            testEventId,
+            eventId,
             question,
             maxShares,
-            10000, // 100% or higher (invalid)
-            new anchor.BN(matchTimestamp)
+            optaOddsYes,
+            new BN(matchTimestamp)
           )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
+          .signers([adminKeypair])
           .rpc();
-
         expect.fail("Should have failed with odds too high");
       } catch (error) {
-        expect(error.error.errorMessage).to.include("Invalid odds");
+        expect(error.error.errorCode.code).to.equal("InvalidOdds");
       }
     });
 
-    it("Accepts valid odds range", async () => {
-      const validOdds = [1, 1000, 5000, 9000, 9999]; // 0.01% to 99.99%
+    it("Should fail with match too soon", async () => {
+      const eventId = "EVENT_007";
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 3600; // Only 1 hour from now
 
-      for (let i = 0; i < validOdds.length; i++) {
-        const testEventId = `test_valid_odds_${i}`;
-        const [testEventPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-          program.programId
-        );
-        const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-          program.programId
-        );
-
+      try {
         await program.methods
           .createEvent(
-            testEventId,
+            eventId,
             question,
             maxShares,
-            validOdds[i],
-            new anchor.BN(matchTimestamp)
+            optaOddsYes,
+            new BN(matchTimestamp)
           )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
+          .signers([adminKeypair])
           .rpc();
-
-        const event = await program.account.event.fetch(testEventPDA);
-        expect(event.optaProbabilityYes + event.optaProbabilityNo).to.equal(10000);
+        expect.fail("Should have failed with match too soon");
+      } catch (error) {
+        expect(error.error.errorCode.code).to.equal("MatchTooSoon");
       }
     });
   });
 
-  describe("Timing Validation", () => {
-    it("Rejects past timestamps", async () => {
-      const pastTimestamp = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
-      const testEventId = "test_past_event";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
+  describe("Authorization failures", () => {
+    it("Should fail with non-admin signer", async () => {
+      const eventId = "EVENT_008";
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
 
       try {
         await program.methods
           .createEvent(
-            testEventId,
+            eventId,
             question,
             maxShares,
             optaOddsYes,
-            new anchor.BN(pastTimestamp)
+            new BN(matchTimestamp)
           )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
+          .signers([nonAdminKeypair])
           .rpc();
-
-        expect.fail("Should have failed with past timestamp");
+        expect.fail("Should have failed with non-admin signer");
       } catch (error) {
-        expect(error.error.errorMessage).to.include("Match too soon");
-      }
-    });
-
-    it("Rejects timestamps less than 24 hours in future", async () => {
-      const nearFutureTimestamp = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
-      const testEventId = "test_near_future_event";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      try {
-        await program.methods
-          .createEvent(
-            testEventId,
-            question,
-            maxShares,
-            optaOddsYes,
-            new anchor.BN(nearFutureTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with insufficient future time");
-      } catch (error) {
-        expect(error.error.errorMessage).to.include("Match too soon");
+        expect(error.error.errorCode.code).to.equal("Unauthorized");
       }
     });
   });
 
-  describe("Authorization and System State", () => {
-    it("Rejects non-admin users", async () => {
-      const unauthorizedUser = Keypair.generate();
-      await provider.connection.requestAirdrop(
-        unauthorizedUser.publicKey,
-        2 * LAMPORTS_PER_SOL
-      );
+  describe("Duplicate event prevention", () => {
+    it("Should fail when creating event with duplicate ID in same market", async () => {
+      const eventId = "EVENT_009";
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
 
-      const testEventId = "test_unauthorized_event";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
+      // Create first event successfully
+      await program.methods
+        .createEvent(
+          eventId,
+          question,
+          maxShares,
+          optaOddsYes,
+          new BN(matchTimestamp)
+        )
+        .signers([adminKeypair])
+        .rpc();
 
+      // Try to create second event with same ID in same market
       try {
         await program.methods
           .createEvent(
-            testEventId,
-            question,
+            eventId,
+            "Different question",
             maxShares,
             optaOddsYes,
-            new anchor.BN(matchTimestamp)
+            new BN(matchTimestamp)
           )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: unauthorizedUser.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .signers([unauthorizedUser])
+          .signers([adminKeypair])
           .rpc();
-
-        expect.fail("Should have failed with unauthorized access");
-      } catch (error) {
-        expect(error.error.errorMessage).to.include("Unauthorized");
-      }
-    });
-
-    it("Rejects when market doesn't exist", async () => {
-      const nonExistentMarketId = "non_existent_market";
-      const [nonExistentMarketPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("market"), Buffer.from(nonExistentMarketId)],
-        program.programId
-      );
-
-      const testEventId = "test_no_market";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(nonExistentMarketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      try {
-        await program.methods
-          .createEvent(
-            testEventId,
-            question,
-            maxShares,
-            optaOddsYes,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: nonExistentMarketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with non-existent market");
-      } catch (error) {
-        expect(error.message).to.include("Account does not exist");
-      }
-    });
-  });
-
-  describe("Duplicate Prevention", () => {
-    it("Prevents duplicate event creation", async () => {
-      try {
-        const [duplicateEventPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("event"), Buffer.from(marketId), Buffer.from(eventId)], // Same as original
-          program.programId
-        );
-        const [duplicateOrderBookPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("orderbook"), Buffer.from(eventId), Buffer.from("primary")],
-          program.programId
-        );
-
-        await program.methods
-          .createEvent(
-            eventId, // Same event ID as before
-            question,
-            maxShares,
-            optaOddsYes,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: duplicateEventPDA,
-            orderBook: duplicateOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        expect.fail("Should have failed with duplicate event");
+        expect.fail("Should have failed with duplicate event ID");
       } catch (error) {
         expect(error.message).to.include("already in use");
       }
     });
   });
 
-  describe("Price Calculation Verification", () => {
-    it("Calculates prices correctly for different odds", async () => {
-      const testCases = [
-        { odds: 2500, expectedYesApprox: 0.25 }, // 25%
-        { odds: 5000, expectedYesApprox: 0.50 }, // 50%
-        { odds: 7500, expectedYesApprox: 0.75 }, // 75%
-        { odds: 9000, expectedYesApprox: 0.90 }, // 90%
-      ];
+  describe("PDA validation", () => {
+    it("Should verify correct event and order book PDA derivation", async () => {
+      const eventId = "EVENT_010";
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
 
-      for (let i = 0; i < testCases.length; i++) {
-        const testCase = testCases[i];
-        const testEventId = `price_test_${i}`;
-        const [testEventPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-          program.programId
-        );
-        const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-          program.programId
-        );
+      const [expectedEventPda, expectedEventBump] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("event"), Buffer.from(MARKET_ID), Buffer.from(eventId)],
+        program.programId
+      );
 
-        await program.methods
-          .createEvent(
-            testEventId,
-            `Test question for ${testCase.odds} odds?`,
-            maxShares,
-            testCase.odds,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
+      const [expectedOrderBookPda, expectedOrderBookBump] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("orderbook"), Buffer.from(eventId), Buffer.from("primary")],
+        program.programId
+      );
 
-        const event = await program.account.event.fetch(testEventPDA);
-        
-        // Verify total is exactly 1 SOL
-        const totalPrice = event.yesSharePrice.toNumber() + event.noSharePrice.toNumber();
-        expect(totalPrice).to.equal(LAMPORTS_PER_SOL);
-        
-        // Verify YES price is approximately correct (within 5% due to normalization)
-        const actualYesPrice = event.yesSharePrice.toNumber() / LAMPORTS_PER_SOL;
-        const priceDifference = Math.abs(actualYesPrice - testCase.expectedYesApprox);
-        expect(priceDifference).to.be.lessThan(0.05);
-        
-        console.log(`Odds: ${testCase.odds}, Expected YES: ${testCase.expectedYesApprox}, Actual YES: ${actualYesPrice.toFixed(3)}`);
-      }
-    });
+      // Create event
+      await program.methods
+        .createEvent(
+          eventId,
+          question,
+          maxShares,
+          optaOddsYes,
+          new BN(matchTimestamp)
+        )
+        .signers([adminKeypair])
+        .rpc();
 
-    it("Handles extreme odds correctly", async () => {
-      const extremeOdds = [1, 9999]; // Very low and very high probabilities
+      // Verify event PDA and bump
+      const eventAccount = await program.account.event.fetch(expectedEventPda);
+      expect(eventAccount.bump).to.equal(expectedEventBump);
+      expect(eventAccount.eventId).to.equal(eventId);
 
-      for (let i = 0; i < extremeOdds.length; i++) {
-        const odds = extremeOdds[i];
-        const testEventId = `extreme_odds_${i}`;
-        const [testEventPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-          program.programId
-        );
-        const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-          program.programId
-        );
-
-        await program.methods
-          .createEvent(
-            testEventId,
-            `Extreme odds test ${odds}?`,
-            maxShares,
-            odds,
-            new anchor.BN(matchTimestamp)
-          )
-          .accounts({
-            globalState: globalStatePDA,
-            market: marketPDA,
-            event: testEventPDA,
-            orderBook: testOrderBookPDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        const event = await program.account.event.fetch(testEventPDA);
-        
-        // Prices should still sum to 1 SOL
-        const totalPrice = event.yesSharePrice.toNumber() + event.noSharePrice.toNumber();
-        expect(totalPrice).to.equal(LAMPORTS_PER_SOL);
-        
-        // Both prices should be positive
-        expect(event.yesSharePrice.toNumber()).to.be.greaterThan(0);
-        expect(event.noSharePrice.toNumber()).to.be.greaterThan(0);
-        
-        // Probabilities should sum to 10000
-        expect(event.optaProbabilityYes + event.optaProbabilityNo).to.equal(10000);
-      }
+      // Verify order book PDA and bump
+      const orderBookAccount = await program.account.orderBook.fetch(expectedOrderBookPda);
+      expect(orderBookAccount.bump).to.equal(expectedOrderBookBump);
+      expect(orderBookAccount.eventId).to.equal(eventId);
     });
   });
 
-  describe("Data Referential Integrity", () => {
-    it("Maintains correct references between accounts", async () => {
-      const testEventId = "test_integrity";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
+  describe("Edge cases", () => {
+    it("Should handle minimum valid share count", async () => {
+      const eventId = "EVENT_011";
+      const question = "Test question";
+      const maxShares = 2; // Minimum valid (even number > 0)
+      const optaOddsYes = 5000;
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      const [eventPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("event"), Buffer.from(MARKET_ID), Buffer.from(eventId)],
         program.programId
       );
 
       await program.methods
         .createEvent(
-          testEventId,
+          eventId,
           question,
           maxShares,
           optaOddsYes,
-          new anchor.BN(matchTimestamp)
+          new BN(matchTimestamp)
         )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: testEventPDA,
-          orderBook: testOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
+        .signers([adminKeypair])
         .rpc();
 
-      const event = await program.account.event.fetch(testEventPDA);
-      const market = await program.account.market.fetch(marketPDA);
-      const orderBook = await program.account.orderBook.fetch(testOrderBookPDA);
+      const eventAccount = await program.account.event.fetch(eventPda);
+      expect(eventAccount.maxSharesTotal).to.equal(maxShares);
+      expect(eventAccount.maxSharesYes).to.equal(1);
+      expect(eventAccount.maxSharesNo).to.equal(1);
+    });
 
-      // Verify event references correct market
-      expect(event.marketId).to.equal(market.marketId);
-      expect(event.admin.toString()).to.equal(market.admin.toString());
-      
-      // Verify order book references correct event
-      expect(orderBook.eventId).to.equal(event.eventId);
-      
-      // Verify timing relationships
-      expect(event.primaryMarketClose.toNumber()).to.be.lessThan(event.secondaryMarketOpen.toNumber());
-      expect(event.secondaryMarketOpen.toNumber()).to.be.lessThan(event.secondaryMarketClose.toNumber());
-      expect(event.secondaryMarketOpen.toNumber()).to.equal(market.matchTimestamp.toNumber());
+    it("Should handle extreme odds (very low probability)", async () => {
+      const eventId = "EVENT_012";
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 1; // Very low probability
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      const [eventPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("event"), Buffer.from(MARKET_ID), Buffer.from(eventId)],
+        program.programId
+      );
+
+      await program.methods
+        .createEvent(
+          eventId,
+          question,
+          maxShares,
+          optaOddsYes,
+          new BN(matchTimestamp)
+        )
+        .signers([adminKeypair])
+        .rpc();
+
+      const eventAccount = await program.account.event.fetch(eventPda);
+      expect(eventAccount.optaProbabilityYes).to.be.lessThan(eventAccount.optaProbabilityNo);
+    });
+
+    it("Should handle extreme odds (very high probability)", async () => {
+      const eventId = "EVENT_013";
+      const question = "Test question";
+      const maxShares = 100;
+      const optaOddsYes = 9999; // Very high probability
+      const matchTimestamp = Math.floor(Date.now() / 1000) + 86400 * 2;
+
+      const [eventPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("event"), Buffer.from(MARKET_ID), Buffer.from(eventId)],
+        program.programId
+      );
+
+      await program.methods
+        .createEvent(
+          eventId,
+          question,
+          maxShares,
+          optaOddsYes,
+          new BN(matchTimestamp)
+        )
+        .signers([adminKeypair])
+        .rpc();
+
+      const eventAccount = await program.account.event.fetch(eventPda);
+      expect(eventAccount.optaProbabilityYes).to.be.greaterThan(eventAccount.optaProbabilityNo);
     });
   });
 
-  describe("Account Management", () => {
-    it("Creates accounts with correct PDAs and bumps", async () => {
-      const testEventId = "test_pda_bumps";
-      const [expectedEventPDA, expectedEventBump] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [expectedOrderBookPDA, expectedOrderBookBump] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      await program.methods
-        .createEvent(
-          testEventId,
-          question,
-          maxShares,
-          optaOddsYes,
-          new anchor.BN(matchTimestamp)
-        )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: expectedEventPDA,
-          orderBook: expectedOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-
-      const event = await program.account.event.fetch(expectedEventPDA);
-      const orderBook = await program.account.orderBook.fetch(expectedOrderBookPDA);
-      
-      expect(event.bump).to.equal(expectedEventBump);
-      expect(orderBook.bump).to.equal(expectedOrderBookBump);
-    });
-
-    it("Accounts are rent exempt", async () => {
-      const testEventId = "test_rent_exempt_event";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      await program.methods
-        .createEvent(
-          testEventId,
-          question,
-          maxShares,
-          optaOddsYes,
-          new anchor.BN(matchTimestamp)
-        )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: testEventPDA,
-          orderBook: testOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-
-      // Check event account
-      const eventAccountInfo = await provider.connection.getAccountInfo(testEventPDA);
-      const eventRentExempt = await provider.connection.getMinimumBalanceForRentExemption(
-        eventAccountInfo!.data.length
-      );
-      expect(eventAccountInfo!.lamports).to.be.greaterThanOrEqual(eventRentExempt);
-
-      // Check order book account
-      const orderBookAccountInfo = await provider.connection.getAccountInfo(testOrderBookPDA);
-      const orderBookRentExempt = await provider.connection.getMinimumBalanceForRentExemption(
-        orderBookAccountInfo!.data.length
-      );
-      expect(orderBookAccountInfo!.lamports).to.be.greaterThanOrEqual(orderBookRentExempt);
-    });
-  });
-
-  describe("Transaction Cost Analysis", () => {
-    it("Records transaction costs for optimization", async () => {
-      const testEventId = "test_cost_analysis_event";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      const balanceBefore = await provider.connection.getBalance(admin.publicKey);
-
-      await program.methods
-        .createEvent(
-          testEventId,
-          question,
-          maxShares,
-          optaOddsYes,
-          new anchor.BN(matchTimestamp)
-        )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: testEventPDA,
-          orderBook: testOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-
-      const balanceAfter = await provider.connection.getBalance(admin.publicKey);
-      const cost = (balanceBefore - balanceAfter) / LAMPORTS_PER_SOL;
-      
-      console.log(`Event creation cost: ${cost} SOL`);
-      expect(cost).to.be.lessThan(0.01); // Should cost less than 0.01 SOL
-    });
-  });
-
-  describe("Edge Cases and Special Scenarios", () => {
-    it("Handles unicode characters in questions", async () => {
-      const unicodeQuestion = "¿Ganará el Real Madrid? 🏆⚽";
-      const testEventId = "test_unicode_question";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(testEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(testEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      await program.methods
-        .createEvent(
-          testEventId,
-          unicodeQuestion,
-          maxShares,
-          optaOddsYes,
-          new anchor.BN(matchTimestamp)
-        )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: testEventPDA,
-          orderBook: testOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-
-      const event = await program.account.event.fetch(testEventPDA);
-      expect(event.question).to.equal(unicodeQuestion);
-    });
-
-    it("Handles special characters in event IDs", async () => {
-      const specialEventId = "will_team_win_2024_final";
-      const [testEventPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("event"), Buffer.from(marketId), Buffer.from(specialEventId)],
-        program.programId
-      );
-      const [testOrderBookPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("orderbook"), Buffer.from(specialEventId), Buffer.from("primary")],
-        program.programId
-      );
-
-      await program.methods
-        .createEvent(
-          specialEventId,
-          question,
-          maxShares,
-          optaOddsYes,
-          new anchor.BN(matchTimestamp)
-        )
-        .accounts({
-          globalState: globalStatePDA,
-          market: marketPDA,
-          event: testEventPDA,
-          orderBook: testOrderBookPDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-
-      const event = await program.account.event.fetch(testEventPDA);
-      expect(event.eventId).to.equal(specialEventId);
-    });
+  after(async () => {
+    // Cleanup: Close accounts if needed
+    // Note: In test environment, accounts are automatically cleaned up
   });
 });

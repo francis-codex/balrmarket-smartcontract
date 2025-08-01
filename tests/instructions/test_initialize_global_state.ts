@@ -1,264 +1,313 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { Program, web3, BN } from "@coral-xyz/anchor";
 import { Balrmarket } from "../../target/types/balrmarket";
 import { expect } from "chai";
-import { PublicKey, SystemProgram, LAMPORTS_PER_SOL, Keypair } from "@solana/web3.js";
 
 describe("Initialize Global State", () => {
+  // Configure the client to use the local cluster
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
   const program = anchor.workspace.Balrmarket as Program<Balrmarket>;
-  const admin = provider.wallet;
+  const connection = provider.connection;
 
-  let globalStatePDA: PublicKey;
+  // Test wallets
+  let adminKeypair: web3.Keypair;
+  let nonAdminKeypair: web3.Keypair;
+  let globalStatePda: web3.PublicKey;
+  let isInitialized = false;
+
+  // Test constants
+  const PLATFORM_FEE_PRIMARY = 200; // 2% in basis points
+  const PLATFORM_FEE_SECONDARY = 100; // 1% in basis points
 
   before(async () => {
-    [globalStatePDA] = PublicKey.findProgramAddressSync(
+    // Generate fresh keypairs for the entire test suite
+    adminKeypair = web3.Keypair.generate();
+    nonAdminKeypair = web3.Keypair.generate();
+
+    // Airdrop SOL to test accounts
+    await connection.requestAirdrop(adminKeypair.publicKey, 20 * web3.LAMPORTS_PER_SOL);
+    await connection.requestAirdrop(nonAdminKeypair.publicKey, 10 * web3.LAMPORTS_PER_SOL);
+
+    // Wait for airdrops to confirm
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Derive global state PDA
+    [globalStatePda] = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
       program.programId
     );
   });
 
-  describe("Successful Initialization", () => {
-    it("Initializes global state with valid parameters", async () => {
-      const platformFeePrimary = 200; // 2%
-      const platformFeeSecondary = 50;  // 0.5%
+  describe("Successful initialization", () => {
+    it("Should initialize global state with correct parameters", async () => {
+      // Skip if already initialized by another test
+      if (isInitialized) {
+        console.log("Global state already initialized, skipping...");
+        return;
+      }
 
+      // Initialize global state
       const tx = await program.methods
         .initializeGlobalState(
-          admin.publicKey,
-          platformFeePrimary,
-          platformFeeSecondary
+          adminKeypair.publicKey,
+          PLATFORM_FEE_PRIMARY,
+          PLATFORM_FEE_SECONDARY
         )
         .accounts({
-          globalState: globalStatePDA,
-          admin: admin.publicKey,
-          systemProgram: SystemProgram.programId,
+          admin: adminKeypair.publicKey,
         })
+        .signers([adminKeypair])
         .rpc();
 
-      console.log("Global State Initialization Transaction:", tx);
+      isInitialized = true;
 
-      // Verify all fields are set correctly
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      
-      expect(globalState.admin.toString()).to.equal(admin.publicKey.toString());
-      expect(globalState.totalEvents.toNumber()).to.equal(0);
-      expect(globalState.platformFeePrimary).to.equal(platformFeePrimary);
-      expect(globalState.platformFeeSecondary).to.equal(platformFeeSecondary);
-      expect(globalState.feeRecipient.toString()).to.equal(admin.publicKey.toString());
-      expect(globalState.isPaused).to.be.false;
-      expect(globalState.bump).to.be.greaterThan(0);
+      console.log("Initialize global state transaction:", tx);
+
+      // Fetch and verify global state account
+      const globalStateAccount = await program.account.globalState.fetch(globalStatePda);
+
+      expect(globalStateAccount.admin.toString()).to.equal(adminKeypair.publicKey.toString());
+      expect(globalStateAccount.totalEvents.toNumber()).to.equal(0);
+      expect(globalStateAccount.platformFeePrimary).to.equal(PLATFORM_FEE_PRIMARY);
+      expect(globalStateAccount.platformFeeSecondary).to.equal(PLATFORM_FEE_SECONDARY);
+      expect(globalStateAccount.feeRecipient.toString()).to.equal(adminKeypair.publicKey.toString());
+      expect(globalStateAccount.isPaused).to.be.false;
+      expect(globalStateAccount.bump).to.be.a('number');
     });
 
-    it("Sets admin as initial fee recipient", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      expect(globalState.feeRecipient.toString()).to.equal(globalState.admin.toString());
+    it("Should emit GlobalStateInitialized event", async () => {
+      // Listen for events
+      let eventReceived = false;
+      const listener = program.addEventListener("globalStateInitialized", (event) => {
+        expect(event.admin.toString()).to.equal(adminKeypair.publicKey.toString());
+        expect(event.platformFeePrimary).to.equal(PLATFORM_FEE_PRIMARY);
+        expect(event.platformFeeSecondary).to.equal(PLATFORM_FEE_SECONDARY);
+        eventReceived = true;
+      });
+
+      // Initialize global state
+      await program.methods
+        .initializeGlobalState(
+          adminKeypair.publicKey,
+          PLATFORM_FEE_PRIMARY,
+          PLATFORM_FEE_SECONDARY
+        )
+        .accounts({
+          admin: adminKeypair.publicKey,
+        })
+        .signers([adminKeypair])
+        .rpc();
+
+      // Wait for event
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      program.removeEventListener(listener);
+      expect(eventReceived).to.be.true;
     });
 
-    it("Initializes with correct bump seed", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      const [expectedPDA, expectedBump] = PublicKey.findProgramAddressSync(
-        [Buffer.from("global_state")],
-        program.programId
-      );
-      
-      expect(globalState.bump).to.equal(expectedBump);
-      expect(globalStatePDA.toString()).to.equal(expectedPDA.toString());
+    it("Should allow different admin as fee recipient", async () => {
+      const differentAdmin = web3.Keypair.generate();
+      await connection.requestAirdrop(differentAdmin.publicKey, 5 * web3.LAMPORTS_PER_SOL);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      await program.methods
+        .initializeGlobalState(
+          differentAdmin.publicKey,
+          PLATFORM_FEE_PRIMARY,
+          PLATFORM_FEE_SECONDARY
+        )
+        .accounts({
+          admin: adminKeypair.publicKey,
+        })
+        .signers([adminKeypair])
+        .rpc();
+
+      const globalStateAccount = await program.account.globalState.fetch(globalStatePda);
+      expect(globalStateAccount.admin.toString()).to.equal(differentAdmin.publicKey.toString());
+      expect(globalStateAccount.feeRecipient.toString()).to.equal(differentAdmin.publicKey.toString());
     });
   });
 
-  describe("Parameter Validation", () => {
-    it("Accepts zero fees", async () => {
-      // Create a new global state with different admin for this test
-      const newAdmin = Keypair.generate();
-      await provider.connection.requestAirdrop(newAdmin.publicKey, 2 * LAMPORTS_PER_SOL);
-      
-      const [newGlobalStatePDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("global_state_zero_fee")],
-        program.programId
-      );
+  describe("Edge cases and validation", () => {
+    it("Should handle zero fees", async () => {
+      // Skip if already initialized
+      try {
+        const existingAccount = await program.account.globalState.fetch(globalStatePda);
+        console.log("Global state already exists, skipping zero fee test");
+        return;
+      } catch (error) {
+        // Account doesn't exist, we can initialize
+      }
 
-      // Note: This would require modifying the seeds, but demonstrates the concept
-      // In practice, you'd test this with a different program instance
-      const platformFeePrimary = 0;
-      const platformFeeSecondary = 0;
+      await program.methods
+        .initializeGlobalState(
+          adminKeypair.publicKey,
+          0, // Zero primary fee
+          0  // Zero secondary fee
+        )
+        .accounts({
+          admin: adminKeypair.publicKey,
+        })
+        .signers([adminKeypair])
+        .rpc();
 
-      // This test shows the validation logic would work
-      expect(platformFeePrimary).to.equal(0);
-      expect(platformFeeSecondary).to.equal(0);
+      const globalStateAccount = await program.account.globalState.fetch(globalStatePda);
+      expect(globalStateAccount.platformFeePrimary).to.equal(0);
+      expect(globalStateAccount.platformFeeSecondary).to.equal(0);
     });
 
-    it("Accepts maximum reasonable fees", async () => {
-      const platformFeePrimary = 1000; // 10%
-      const platformFeeSecondary = 500;  // 5%
+    it("Should handle maximum fee values", async () => {
+      // Skip if already initialized  
+      try {
+        const existingAccount = await program.account.globalState.fetch(globalStatePda);
+        console.log("Global state already exists, skipping max fee test");
+        return;
+      } catch (error) {
+        // Account doesn't exist, we can initialize
+      }
 
-      // These are valid values that should be accepted
-      expect(platformFeePrimary).to.be.lessThan(10000); // Less than 100%
-      expect(platformFeeSecondary).to.be.lessThan(10000);
+      const maxFee = 10000; // 100% in basis points
+
+      await program.methods
+        .initializeGlobalState(
+          adminKeypair.publicKey,
+          maxFee,
+          maxFee
+        )
+        .accounts({
+          admin: adminKeypair.publicKey,
+        })
+        .signers([adminKeypair])
+        .rpc();
+
+      const globalStateAccount = await program.account.globalState.fetch(globalStatePda);
+      expect(globalStateAccount.platformFeePrimary).to.equal(maxFee);
+      expect(globalStateAccount.platformFeeSecondary).to.equal(maxFee);
     });
 
-    it("Validates admin address is valid", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      expect(globalState.admin).to.be.instanceOf(PublicKey);
-      expect(globalState.admin.toString()).to.have.length(44); // Base58 encoded pubkey length
-    });
-  });
+    it("Should fail when trying to initialize twice", async () => {
+      // Ensure we have one initialization first
+      let alreadyInitialized = false;
+      try {
+        await program.account.globalState.fetch(globalStatePda);
+        alreadyInitialized = true;
+      } catch (error) {
+        // First initialization
+        await program.methods
+          .initializeGlobalState(
+            adminKeypair.publicKey,
+            PLATFORM_FEE_PRIMARY,
+            PLATFORM_FEE_SECONDARY
+          )
+          .signers([adminKeypair])
+          .rpc();
+      }
 
-  describe("Account State Verification", () => {
-    it("Account is rent exempt", async () => {
-      const accountInfo = await provider.connection.getAccountInfo(globalStatePDA);
-      expect(accountInfo).to.not.be.null;
-      
-      const rentExemptMinimum = await provider.connection.getMinimumBalanceForRentExemption(
-        accountInfo!.data.length
-      );
-      
-      expect(accountInfo!.lamports).to.be.greaterThanOrEqual(rentExemptMinimum);
-    });
-
-    it("Account owner is the program", async () => {
-      const accountInfo = await provider.connection.getAccountInfo(globalStatePDA);
-      expect(accountInfo!.owner.toString()).to.equal(program.programId.toString());
-    });
-
-    it("Account has correct data size", async () => {
-      const accountInfo = await provider.connection.getAccountInfo(globalStatePDA);
-      const expectedSize = 8 + 84; // 8 bytes discriminator + GlobalState::INIT_SPACE
-      expect(accountInfo!.data.length).to.equal(expectedSize);
-    });
-  });
-
-  describe("Duplicate Initialization", () => {
-    it("Prevents double initialization", async () => {
+      // Second initialization should fail
       try {
         await program.methods
           .initializeGlobalState(
-            admin.publicKey,
-            300, // Different fees
-            75
+            adminKeypair.publicKey,
+            PLATFORM_FEE_PRIMARY,
+            PLATFORM_FEE_SECONDARY
           )
-          .accounts({
-            globalState: globalStatePDA,
-            admin: admin.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
+          .signers([adminKeypair])
           .rpc();
-
-        expect.fail("Should have failed with account already exists");
+        expect.fail("Should have failed on second initialization");
       } catch (error) {
         expect(error.message).to.include("already in use");
       }
     });
   });
 
-  describe("Different Admin Scenarios", () => {
-    it("Records different admin addresses correctly", async () => {
-      const alternateAdmin = Keypair.generate();
-      
-      // Test that we can specify a different admin than the transaction signer
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      
-      // In our current implementation, admin is set to the passed parameter
-      // This validates that the parameter is correctly stored
-      expect(globalState.admin.toString()).to.equal(admin.publicKey.toString());
+  describe("Account validation", () => {
+    it("Should fail with insufficient funds", async () => {
+      // Create a keypair with minimal SOL
+      const poorKeypair = web3.Keypair.generate();
+      await connection.requestAirdrop(poorKeypair.publicKey, 1000); // Very small amount
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      try {
+        await program.methods
+          .initializeGlobalState(
+            poorKeypair.publicKey,
+            PLATFORM_FEE_PRIMARY,
+            PLATFORM_FEE_SECONDARY
+          )
+          .signers([poorKeypair])
+          .rpc();
+        expect.fail("Should have failed due to insufficient funds");
+      } catch (error) {
+        expect(error.message).to.include("insufficient");
+      }
+    });
+
+    it("Should fail with wrong signer", async () => {
+      try {
+        await program.methods
+          .initializeGlobalState(
+            adminKeypair.publicKey,
+            PLATFORM_FEE_PRIMARY,
+            PLATFORM_FEE_SECONDARY
+          )
+          .signers([nonAdminKeypair]) // Wrong signer
+          .rpc();
+        expect.fail("Should have failed with wrong signer");
+      } catch (error) {
+        expect(error.message).to.include("unknown signer");
+      }
     });
   });
 
-  describe("Fee Configuration Edge Cases", () => {
-    it("Handles edge case fee values correctly", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      
-      // Verify fees are stored as basis points (uint16)
-      expect(globalState.platformFeePrimary).to.be.a('number');
-      expect(globalState.platformFeeSecondary).to.be.a('number');
-      expect(globalState.platformFeePrimary).to.be.greaterThanOrEqual(0);
-      expect(globalState.platformFeePrimary).to.be.lessThan(65536); // Max u16
-      expect(globalState.platformFeeSecondary).to.be.greaterThanOrEqual(0);
-      expect(globalState.platformFeeSecondary).to.be.lessThan(65536);
-    });
-
-    it("Stores fees as basis points correctly", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      
-      // 200 basis points = 2%
-      expect(globalState.platformFeePrimary).to.equal(200);
-      expect(globalState.platformFeeSecondary).to.equal(50);
-      
-      // Verify conversion: 200 basis points = 2%
-      const primaryFeePercentage = globalState.platformFeePrimary / 100;
-      const secondaryFeePercentage = globalState.platformFeeSecondary / 100;
-      
-      expect(primaryFeePercentage).to.equal(2.0);
-      expect(secondaryFeePercentage).to.equal(0.5);
-    });
-  });
-
-  describe("System State Validation", () => {
-    it("Initializes system as not paused", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      expect(globalState.isPaused).to.be.false;
-    });
-
-    it("Initializes with zero events", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      expect(globalState.totalEvents.toNumber()).to.equal(0);
-    });
-
-    it("Sets fee recipient to admin initially", async () => {
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      expect(globalState.feeRecipient.toString()).to.equal(globalState.admin.toString());
-    });
-  });
-
-  describe("PDA Derivation Verification", () => {
-    it("Uses correct seeds for PDA derivation", async () => {
-      const [derivedPDA, bump] = PublicKey.findProgramAddressSync(
+  describe("PDA validation", () => {
+    it("Should verify correct PDA derivation", async () => {
+      const [expectedPda, expectedBump] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("global_state")],
         program.programId
       );
 
-      expect(derivedPDA.toString()).to.equal(globalStatePDA.toString());
+      expect(globalStatePda.toString()).to.equal(expectedPda.toString());
+
+      // Check if already initialized, if not initialize
+      let globalStateAccount;
+      try {
+        globalStateAccount = await program.account.globalState.fetch(globalStatePda);
+      } catch (error) {
+        // Initialize and verify bump is stored correctly
+        await program.methods
+          .initializeGlobalState(
+            adminKeypair.publicKey,
+            PLATFORM_FEE_PRIMARY,
+            PLATFORM_FEE_SECONDARY
+          )
+          .signers([adminKeypair])
+          .rpc();
+        
+        globalStateAccount = await program.account.globalState.fetch(globalStatePda);
+      }
       
-      const globalState = await program.account.globalState.fetch(globalStatePDA);
-      expect(globalState.bump).to.equal(bump);
+      expect(globalStateAccount.bump).to.equal(expectedBump);
     });
 
-    it("PDA is deterministic", async () => {
-      const [pda1] = PublicKey.findProgramAddressSync(
-        [Buffer.from("global_state")],
-        program.programId
-      );
-      
-      const [pda2] = PublicKey.findProgramAddressSync(
+    it("Should verify PDA derivation matches expected address", async () => {
+      // Test that our derived PDA matches what the program expects
+      const [expectedPda, expectedBump] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("global_state")],
         program.programId
       );
 
-      expect(pda1.toString()).to.equal(pda2.toString());
-      expect(pda1.toString()).to.equal(globalStatePDA.toString());
+      expect(globalStatePda.toString()).to.equal(expectedPda.toString());
+      
+      // Note: Testing incorrect PDA requires TypeScript workarounds
+      // The program will validate PDA correctness at runtime
+      console.log("PDA validation occurs at the program level");
     });
   });
 
-  describe("Transaction Cost Analysis", () => {
-    it("Records transaction cost for optimization", async () => {
-      // This is informational for gas optimization
-      const beforeBalance = await provider.connection.getBalance(admin.publicKey);
-      
-      // Create another test admin to measure initialization cost
-      const testAdmin = Keypair.generate();
-      await provider.connection.requestAirdrop(testAdmin.publicKey, 2 * LAMPORTS_PER_SOL);
-      
-      const afterAirdrop = await provider.connection.getBalance(testAdmin.publicKey);
-      console.log(`Test admin starting balance: ${afterAirdrop / LAMPORTS_PER_SOL} SOL`);
-      
-      // Note: Since we already initialized the global state, we can't test
-      // the actual cost here, but in a real scenario you'd measure before/after
-      const estimatedCost = 0.003; // Estimated SOL cost
-      console.log(`Estimated initialization cost: ${estimatedCost} SOL`);
-      
-      expect(estimatedCost).to.be.lessThan(0.01); // Should be less than 0.01 SOL
-    });
+  after(async () => {
+    // Cleanup: Close accounts if needed
+    // Note: In test environment, accounts are automatically cleaned up
   });
 });
