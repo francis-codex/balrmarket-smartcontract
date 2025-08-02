@@ -36,7 +36,7 @@ pub struct EventCreated {
 }
 
 #[event]
-pub struct ShareMinted {
+pub struct ShareMintedOld {
     pub event_id: String,
     pub yes_owner: Pubkey,
     pub no_owner: Pubkey,
@@ -134,5 +134,28 @@ pub struct OrderCancelled {
     pub event_id: String,
     pub buyer: Pubkey,
     pub refund_amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct ShareMinted {
+    pub event_id: String,
+    pub yes_buyer: Pubkey,
+    pub no_buyer: Pubkey,
+    pub quantity: u64,
+    pub yes_share_token: Pubkey,
+    pub no_share_token: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct MatchProcessed {
+    pub event_id: String,
+    pub matched_pair_id: u64,
+    pub yes_order_id: u64,
+    pub no_order_id: u64,
+    pub quantity: u64,
+    pub yes_price: u64,
+    pub no_price: u64,
     pub timestamp: i64,
 }

@@ -94,4 +94,22 @@ pub enum ErrorCode {
     
     #[msg("Invalid outcome")]
     InvalidOutcome = 6030,
+    
+    #[msg("Invalid price sum - prices don't total 1 SOL")]
+    InvalidPriceSum = 6031,
+    
+    #[msg("Insufficient shares - exceeds remaining event shares")]
+    InsufficientShares = 6032,
+    
+    #[msg("Order already matched")]
+    OrderAlreadyMatched = 6033,
+    
+    #[msg("No compatible orders found")]
+    NoCompatibleOrders = 6034,
+    
+    #[msg("Share token already exists")]
+    ShareTokenAlreadyExists = 6035,
+    
+    #[msg("Invalid share type")]
+    InvalidShareType = 6036,
 }

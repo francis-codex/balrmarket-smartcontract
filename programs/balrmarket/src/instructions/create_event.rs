@@ -106,6 +106,10 @@ pub fn handler(
     event.winning_outcome = None;
     event.opta_probability_yes = normalized_odds.0;
     event.opta_probability_no = normalized_odds.1;
+    event.shares_minted_yes = 0;
+    event.shares_minted_no = 0;
+    event.remaining_shares = max_shares as u64;
+    event.total_matches = 0;
     event.bump = ctx.bumps.event;
     
     // Initialize order book for primary market

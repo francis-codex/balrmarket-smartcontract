@@ -2,7 +2,6 @@
 #[warn(unused_imports)]
 #[warn(deprecated)]
 
-
 pub mod instructions;
 pub mod state;
 pub mod events;
@@ -108,15 +107,41 @@ pub mod balrmarket {
     /// Match compatible orders automatically
     pub fn match_orders(
         ctx: Context<MatchOrders>,
-        order_id_1: u64,
-        order_id_2: u64,
         event_id: String,
+        yes_order_id: u64,
+        no_order_id: u64,
     ) -> Result<()> {
         instructions::match_orders::handler(
             ctx,
-            order_id_1,
-            order_id_2,
             event_id,
+            yes_order_id,
+            no_order_id,
+        )
+    }
+
+    /// Mint share tokens for matched buyers
+    pub fn mint_shares(
+        ctx: Context<MintShares>,
+        event_id: String,
+        matched_pair_id: u64,
+    ) -> Result<()> {
+        instructions::mint_shares::handler(
+            ctx,
+            event_id,
+            matched_pair_id,
+        )
+    }
+
+    /// Process match for post-match accounting
+    pub fn process_match(
+        ctx: Context<ProcessMatch>,
+        event_id: String,
+        matched_pair_id: u64,
+    ) -> Result<()> {
+        instructions::process_match::handler(
+            ctx,
+            event_id,
+            matched_pair_id,
         )
     }
 }

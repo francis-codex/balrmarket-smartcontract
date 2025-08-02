@@ -3,7 +3,7 @@ import { Program, web3, BN } from "@coral-xyz/anchor";
 import { Balrmarket } from "../../target/types/balrmarket";
 import { expect } from "chai";
 
-describe("Match Orders", () => {
+describe("Mint Shares", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
@@ -14,12 +14,14 @@ describe("Match Orders", () => {
   const buyer1 = web3.Keypair.generate();
   const buyer2 = web3.Keypair.generate();
   const matcher = web3.Keypair.generate();
+  const minter = web3.Keypair.generate();
   
   // Test data
-  const marketId = "test-match-market";
-  const eventId = "test-match-event";
+  const marketId = "test-mint-market";
+  const eventId = "test-mint-event";
   const yesOrderId = new BN(1);
   const noOrderId = new BN(2);
+  const matchedPairId = new BN(0);
   
   // PDAs
   let globalStatePda: web3.PublicKey;
@@ -31,6 +33,8 @@ describe("Match Orders", () => {
   let yesEscrowPda: web3.PublicKey;
   let noEscrowPda: web3.PublicKey;
   let matchedPairPda: web3.PublicKey;
+  let yesShareTokenPda: web3.PublicKey;
+  let noShareTokenPda: web3.PublicKey;
 
   before(async () => {
     // Derive PDAs
@@ -74,10 +78,16 @@ describe("Match Orders", () => {
       program.programId
     );
 
+    [matchedPairPda] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("match"), Buffer.from(eventId), matchedPairId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+
     // Fund test accounts
     await provider.connection.requestAirdrop(buyer1.publicKey, 10 * web3.LAMPORTS_PER_SOL);
     await provider.connection.requestAirdrop(buyer2.publicKey, 10 * web3.LAMPORTS_PER_SOL);
     await provider.connection.requestAirdrop(matcher.publicKey, 2 * web3.LAMPORTS_PER_SOL);
+    await provider.connection.requestAirdrop(minter.publicKey, 2 * web3.LAMPORTS_PER_SOL);
     
     // Wait for airdrops to confirm
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -139,10 +149,10 @@ describe("Match Orders", () => {
       // Might already exist
     }
 
-    // Create compatible orders
+    // Create and match orders first
     const yesPrice = new BN(0.6 * web3.LAMPORTS_PER_SOL);
     const noPrice = new BN(0.4 * web3.LAMPORTS_PER_SOL);
-    const quantity = new BN(10);
+    const quantity = new BN(5);
 
     await program.methods
       .placeOrder(
@@ -184,18 +194,8 @@ describe("Match Orders", () => {
       .signers([buyer2])
       .rpc();
 
-    // Derive matched pair PDA (total_matches should be 0 initially)
-    [matchedPairPda] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("match"), Buffer.from(eventId), new BN(0).toArrayLike(Buffer, "le", 8)],
-      program.programId
-    );
-  });
-
-  it("Should match compatible YES and NO orders", async () => {
-    const buyer1BalanceBefore = await provider.connection.getBalance(buyer1.publicKey);
-    const buyer2BalanceBefore = await provider.connection.getBalance(buyer2.publicKey);
-
-    const tx = await program.methods
+    // Match the orders
+    await program.methods
       .matchOrders(
         eventId,
         yesOrderId,
@@ -217,29 +217,114 @@ describe("Match Orders", () => {
       .signers([matcher])
       .rpc();
 
-    // Verify orders are now matched
-    const yesOrder = await program.account.order.fetch(yesOrderPda);
-    const noOrder = await program.account.order.fetch(noOrderPda);
-    
-    expect(yesOrder.status).to.deep.equal({ matched: {} });
-    expect(noOrder.status).to.deep.equal({ matched: {} });
-    expect(yesOrder.quantity.toString()).to.equal("0");
-    expect(noOrder.quantity.toString()).to.equal("0");
+    // Derive share token PDAs
+    [yesShareTokenPda] = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("share"), 
+        Buffer.from(eventId), 
+        buyer1.publicKey.toBuffer(), 
+        Buffer.from("yes")
+      ],
+      program.programId
+    );
 
-    // Verify event shares were updated
-    const eventAccount = await program.account.event.fetch(eventPda);
-    expect(eventAccount.sharesMintedYes.toString()).to.equal("10");
-    expect(eventAccount.sharesMintedNo.toString()).to.equal("10");
-    expect(eventAccount.remainingShares.toString()).to.equal("90");
-    expect(eventAccount.totalMatches.toString()).to.equal("1");
+    [noShareTokenPda] = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("share"), 
+        Buffer.from(eventId), 
+        buyer2.publicKey.toBuffer(), 
+        Buffer.from("no")
+      ],
+      program.programId
+    );
+  });
 
-    // Verify matched pair was created
-    const matchedPair = await program.account.matchedPair.fetch(matchedPairPda);
-    expect(matchedPair.eventId).to.equal(eventId);
-    expect(matchedPair.yesOrderId.toString()).to.equal(yesOrderId.toString());
-    expect(matchedPair.noOrderId.toString()).to.equal(noOrderId.toString());
-    expect(matchedPair.quantity.toString()).to.equal("10");
+  it("Should mint share tokens for matched orders", async () => {
+    await program.methods
+      .mintShares(
+        eventId,
+        matchedPairId
+      )
+      .accounts({
+        globalState: globalStatePda,
+        event: eventPda,
+        matchedPair: matchedPairPda,
+        yesShareToken: yesShareTokenPda,
+        noShareToken: noShareTokenPda,
+        mintAuthority: minter.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .signers([minter])
+      .rpc();
 
-    console.log("Match Orders test completed successfully!");
+    // Verify YES share token
+    const yesShareToken = await program.account.shareToken.fetch(yesShareTokenPda);
+    expect(yesShareToken.eventId).to.equal(eventId);
+    expect(yesShareToken.owner.toString()).to.equal(buyer1.publicKey.toString());
+    expect(yesShareToken.shareType).to.deep.equal({ yes: {} });
+    expect(yesShareToken.quantity.toString()).to.equal("5");
+    expect(yesShareToken.mintAuthority.toString()).to.equal(minter.publicKey.toString());
+
+    // Verify NO share token
+    const noShareToken = await program.account.shareToken.fetch(noShareTokenPda);
+    expect(noShareToken.eventId).to.equal(eventId);
+    expect(noShareToken.owner.toString()).to.equal(buyer2.publicKey.toString());
+    expect(noShareToken.shareType).to.deep.equal({ no: {} });
+    expect(noShareToken.quantity.toString()).to.equal("5");
+    expect(noShareToken.mintAuthority.toString()).to.equal(minter.publicKey.toString());
+
+    console.log("Mint Shares test completed successfully!");
+  });
+
+  it("Should fail to mint shares for non-existent matched pair", async () => {
+    const fakeMatchedPairId = new BN(999);
+    const [fakeMatchedPairPda] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("match"), Buffer.from(eventId), fakeMatchedPairId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+
+    const [fakeYesSharePda] = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("share"), 
+        Buffer.from(eventId), 
+        buyer1.publicKey.toBuffer(), 
+        Buffer.from("yes")
+      ],
+      program.programId
+    );
+
+    const [fakeNoSharePda] = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("share"), 
+        Buffer.from(eventId), 
+        buyer2.publicKey.toBuffer(), 
+        Buffer.from("no")
+      ],
+      program.programId
+    );
+
+    try {
+      await program.methods
+        .mintShares(
+          eventId,
+          fakeMatchedPairId
+        )
+        .accounts({
+          globalState: globalStatePda,
+          event: eventPda,
+          matchedPair: fakeMatchedPairPda,
+          yesShareToken: fakeYesSharePda,
+          noShareToken: fakeNoSharePda,
+          mintAuthority: minter.publicKey,
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .signers([minter])
+        .rpc();
+      
+      expect.fail("Should have failed with non-existent matched pair");
+    } catch (error) {
+      // Should fail because the matched pair account doesn't exist
+      expect(error.message).to.include("AccountNotInitialized");
+    }
   });
 });

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use crate::state::share_token::ShareType;
 
 #[account]
 pub struct UserPortfolio {
@@ -29,8 +30,3 @@ pub struct UserShare {
     pub acquired_at: i64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
-pub enum ShareType {
-    Yes,
-    No,
-}

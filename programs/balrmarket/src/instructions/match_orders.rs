@@ -1,10 +1,10 @@
 use anchor_lang::prelude::*;
-use crate::state::{GlobalState, Event, Order, EscrowAccount, OrderType, OrderStatus};
-use crate::events::OrderMatched;
+use crate::state::{GlobalState, Event, Order, EscrowAccount, OrderType, OrderStatus, MatchedPair};
+use crate::events::{OrderMatched, MatchProcessed};
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(order_id_1: u64, order_id_2: u64, event_id: String)]
+#[instruction(event_id: String, yes_order_id: u64, no_order_id: u64)]
 pub struct MatchOrders<'info> {
     #[account(
         seeds = [b"global_state"],
@@ -16,160 +16,194 @@ pub struct MatchOrders<'info> {
     #[account(
         mut,
         seeds = [b"event", event.market_id.as_bytes(), event_id.as_bytes()],
-        bump
+        bump,
+        constraint = event.remaining_shares > 0 @ ErrorCode::InsufficientShares
     )]
     pub event: Account<'info, Event>,
     
     #[account(
         mut,
-        seeds = [b"order", event_id.as_bytes(), order_id_1.to_le_bytes().as_ref()],
+        seeds = [b"order", event_id.as_bytes(), yes_order_id.to_le_bytes().as_ref()],
         bump,
-        constraint = order_1.status == OrderStatus::Pending @ ErrorCode::OrderAlreadyFilled
+        constraint = yes_order.status == OrderStatus::Pending @ ErrorCode::OrderAlreadyMatched,
+        constraint = yes_order.order_type == OrderType::Yes @ ErrorCode::InvalidOrderPrice
     )]
-    pub order_1: Account<'info, Order>,
+    pub yes_order: Account<'info, Order>,
     
     #[account(
         mut,
-        seeds = [b"order", event_id.as_bytes(), order_id_2.to_le_bytes().as_ref()],
+        seeds = [b"order", event_id.as_bytes(), no_order_id.to_le_bytes().as_ref()],
         bump,
-        constraint = order_2.status == OrderStatus::Pending @ ErrorCode::OrderAlreadyFilled,
-        constraint = order_1.buyer != order_2.buyer @ ErrorCode::CannotTradeWithSelf
+        constraint = no_order.status == OrderStatus::Pending @ ErrorCode::OrderAlreadyMatched,
+        constraint = no_order.order_type == OrderType::No @ ErrorCode::InvalidOrderPrice,
+        constraint = yes_order.buyer != no_order.buyer @ ErrorCode::CannotTradeWithSelf
     )]
-    pub order_2: Account<'info, Order>,
+    pub no_order: Account<'info, Order>,
     
     #[account(
         mut,
-        seeds = [b"escrow", event_id.as_bytes(), order_id_1.to_le_bytes().as_ref()],
+        seeds = [b"escrow", event_id.as_bytes(), yes_order_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub escrow_account_1: Account<'info, EscrowAccount>,
+    pub yes_escrow: Account<'info, EscrowAccount>,
     
     #[account(
         mut,
-        seeds = [b"escrow", event_id.as_bytes(), order_id_2.to_le_bytes().as_ref()],
+        seeds = [b"escrow", event_id.as_bytes(), no_order_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub escrow_account_2: Account<'info, EscrowAccount>,
+    pub no_escrow: Account<'info, EscrowAccount>,
+    
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + MatchedPair::INIT_SPACE,
+        seeds = [b"match", event_id.as_bytes(), event.total_matches.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub matched_pair: Account<'info, MatchedPair>,
     
     #[account(mut)]
-    pub buyer_1: SystemAccount<'info>,
+    pub yes_buyer: SystemAccount<'info>,
     
     #[account(mut)]
-    pub buyer_2: SystemAccount<'info>,
+    pub no_buyer: SystemAccount<'info>,
+    
+    #[account(mut)]
+    pub authority: Signer<'info>,
     
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(
     ctx: Context<MatchOrders>,
-    order_id_1: u64,
-    order_id_2: u64,
     event_id: String,
+    yes_order_id: u64,
+    no_order_id: u64,
 ) -> Result<()> {
-    let order_1 = &mut ctx.accounts.order_1;
-    let order_2 = &mut ctx.accounts.order_2;
+    let yes_order = &mut ctx.accounts.yes_order;
+    let no_order = &mut ctx.accounts.no_order;
     let event = &mut ctx.accounts.event;
 
-    // Validate orders are compatible (opposite types and compatible prices)
-    require!(
-        (order_1.order_type == OrderType::Yes && order_2.order_type == OrderType::No) ||
-        (order_1.order_type == OrderType::No && order_2.order_type == OrderType::Yes),
-        ErrorCode::NoMatchingOrder
-    );
-    
-    // Validate price compatibility (sum should be approximately 1 SOL for market making)
-    let combined_price = order_1.unit_price
-        .checked_add(order_2.unit_price)
+    // Validate price compatibility (must sum to 1 SOL within tolerance)
+    let one_sol = 1_000_000_000u64; // 1 SOL in lamports
+    let combined_price = yes_order.unit_price
+        .checked_add(no_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Allow some tolerance for price matching (within 1% of 1 SOL)
-    let one_sol = 1_000_000_000; // 1 SOL in lamports
-    let tolerance = one_sol / 100; // 1% tolerance
+    // Allow 1% tolerance for price matching
+    let tolerance = one_sol / 100;
     require!(
-        combined_price >= one_sol - tolerance && combined_price <= one_sol + tolerance,
-        ErrorCode::InvalidOrderPrice
+        combined_price >= one_sol.saturating_sub(tolerance) && 
+        combined_price <= one_sol + tolerance,
+        ErrorCode::InvalidPriceSum
     );
+    
+    // FIFO logic: Check that these are the earliest available orders
+    // In a full implementation, you'd query all pending orders and sort by created_at
+    // For now, we assume the caller provides the correct earliest orders
     
     // Determine match quantity (minimum of both orders)
-    let match_quantity = std::cmp::min(order_1.quantity, order_2.quantity);
+    let match_quantity = std::cmp::min(yes_order.quantity, no_order.quantity);
     require!(match_quantity > 0, ErrorCode::InvalidOrderQuantity);
     
-    // Calculate amounts to transfer
-    let amount_1 = match_quantity
-        .checked_mul(order_1.unit_price)
+    // Check remaining shares in event
+    require!(match_quantity <= event.remaining_shares, ErrorCode::InsufficientShares);
+    
+    // Calculate amounts for settlement
+    let yes_amount = match_quantity
+        .checked_mul(yes_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
-    let amount_2 = match_quantity
-        .checked_mul(order_2.unit_price)
+    let no_amount = match_quantity
+        .checked_mul(no_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Transfer escrowed funds to the counterparty
-    // Buyer 1 gets their shares worth order_2's price per share
-    **ctx.accounts.escrow_account_2.to_account_info().try_borrow_mut_lamports()? -= amount_2;
-    **ctx.accounts.buyer_1.to_account_info().try_borrow_mut_lamports()? += amount_2;
+    // Settle escrow - transfer funds to counterparties
+    // YES buyer receives NO buyer's escrowed amount
+    **ctx.accounts.no_escrow.to_account_info().try_borrow_mut_lamports()? -= no_amount;
+    **ctx.accounts.yes_buyer.to_account_info().try_borrow_mut_lamports()? += no_amount;
     
-    // Buyer 2 gets their shares worth order_1's price per share
-    **ctx.accounts.escrow_account_1.to_account_info().try_borrow_mut_lamports()? -= amount_1;
-    **ctx.accounts.buyer_2.to_account_info().try_borrow_mut_lamports()? += amount_1;
+    // NO buyer receives YES buyer's escrowed amount
+    **ctx.accounts.yes_escrow.to_account_info().try_borrow_mut_lamports()? -= yes_amount;
+    **ctx.accounts.no_buyer.to_account_info().try_borrow_mut_lamports()? += yes_amount;
     
     // Update order quantities
-    order_1.quantity = order_1.quantity
+    yes_order.quantity = yes_order.quantity
         .checked_sub(match_quantity)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
-    order_2.quantity = order_2.quantity
+    no_order.quantity = no_order.quantity
         .checked_sub(match_quantity)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
     // Update order total amounts
-    order_1.total_amount = order_1.quantity
-        .checked_mul(order_1.unit_price)
+    yes_order.total_amount = yes_order.quantity
+        .checked_mul(yes_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
-    order_2.total_amount = order_2.quantity
-        .checked_mul(order_2.unit_price)
+    no_order.total_amount = no_order.quantity
+        .checked_mul(no_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
     // Update escrow amounts
-    ctx.accounts.escrow_account_1.amount = order_1.total_amount;
-    ctx.accounts.escrow_account_2.amount = order_2.total_amount;
+    ctx.accounts.yes_escrow.amount = yes_order.total_amount;
+    ctx.accounts.no_escrow.amount = no_order.total_amount;
     
     // Mark orders as matched if fully filled
-    if order_1.quantity == 0 {
-        order_1.status = OrderStatus::Matched;
+    if yes_order.quantity == 0 {
+        yes_order.status = OrderStatus::Matched;
     }
-    if order_2.quantity == 0 {
-        order_2.status = OrderStatus::Matched;
+    if no_order.quantity == 0 {
+        no_order.status = OrderStatus::Matched;
     }
     
-    // Update event share counts
-    match order_1.order_type {
-        OrderType::Yes => {
-            event.minted_shares_yes = event.minted_shares_yes
-                .checked_add(match_quantity as u32)
-                .ok_or(ErrorCode::ArithmeticOverflow)?;
-            event.minted_shares_no = event.minted_shares_no
-                .checked_add(match_quantity as u32)
-                .ok_or(ErrorCode::ArithmeticOverflow)?;
-        },
-        OrderType::No => {
-            event.minted_shares_no = event.minted_shares_no
-                .checked_add(match_quantity as u32)
-                .ok_or(ErrorCode::ArithmeticOverflow)?;
-            event.minted_shares_yes = event.minted_shares_yes
-                .checked_add(match_quantity as u32)
-                .ok_or(ErrorCode::ArithmeticOverflow)?;
-        },
-    }
+    // Update event counters
+    event.shares_minted_yes = event.shares_minted_yes
+        .checked_add(match_quantity)
+        .ok_or(ErrorCode::ArithmeticOverflow)?;
+    event.shares_minted_no = event.shares_minted_no
+        .checked_add(match_quantity)
+        .ok_or(ErrorCode::ArithmeticOverflow)?;
+    event.remaining_shares = event.remaining_shares
+        .checked_sub(match_quantity)
+        .ok_or(ErrorCode::ArithmeticOverflow)?;
+    event.total_matches = event.total_matches
+        .checked_add(1)
+        .ok_or(ErrorCode::ArithmeticOverflow)?;
     
     let current_time = Clock::get()?.unix_timestamp;
     
-    // Emit OrderMatched event
+    // Initialize matched pair record
+    let matched_pair = &mut ctx.accounts.matched_pair;
+    matched_pair.event_id = event_id.clone();
+    matched_pair.yes_order_id = yes_order_id;
+    matched_pair.no_order_id = no_order_id;
+    matched_pair.yes_buyer = yes_order.buyer;
+    matched_pair.no_buyer = no_order.buyer;
+    matched_pair.quantity = match_quantity;
+    matched_pair.yes_price = yes_order.unit_price;
+    matched_pair.no_price = no_order.unit_price;
+    matched_pair.matched_at = current_time;
+    matched_pair.bump = ctx.bumps.matched_pair;
+    
+    // Emit events
     emit!(OrderMatched {
-        order_id_1,
-        order_id_2,
-        event_id,
-        buyer_1: order_1.buyer,
-        buyer_2: order_2.buyer,
+        order_id_1: yes_order_id,
+        order_id_2: no_order_id,
+        event_id: event_id.clone(),
+        buyer_1: yes_order.buyer,
+        buyer_2: no_order.buyer,
         quantity: match_quantity,
-        unit_price: (order_1.unit_price + order_2.unit_price) / 2, // Average price
+        unit_price: (yes_order.unit_price + no_order.unit_price) / 2,
+        timestamp: current_time,
+    });
+    
+    emit!(MatchProcessed {
+        event_id,
+        matched_pair_id: event.total_matches - 1,
+        yes_order_id,
+        no_order_id,
+        quantity: match_quantity,
+        yes_price: yes_order.unit_price,
+        no_price: no_order.unit_price,
         timestamp: current_time,
     });
     
