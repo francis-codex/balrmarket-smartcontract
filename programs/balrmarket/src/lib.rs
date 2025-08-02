@@ -14,7 +14,6 @@ use anchor_lang::prelude::*;
 pub use instructions::*;
 pub use state::*;
 pub use events::*;
-pub use error::*;
 pub use utils::*;
 
 declare_id!("CYCLSN9sVJGKo4xy3daXvH3KFD66wPgDvAuFVRhc6RDq");
