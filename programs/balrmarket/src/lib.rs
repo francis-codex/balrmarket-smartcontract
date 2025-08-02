@@ -72,4 +72,51 @@ pub mod balrmarket {
             match_timestamp,
         )
     }
+
+    /// Place a new order with SOL escrow
+    pub fn place_order(
+        ctx: Context<PlaceOrder>,
+        order_id: u64,
+        event_id: String,
+        order_type: OrderType,
+        quantity: u64,
+        unit_price: u64,
+    ) -> Result<()> {
+        instructions::place_order::handler(
+            ctx,
+            order_id,
+            event_id,
+            order_type,
+            quantity,
+            unit_price,
+        )
+    }
+
+    /// Cancel a pending order and refund SOL
+    pub fn cancel_order(
+        ctx: Context<CancelOrder>,
+        order_id: u64,
+        event_id: String,
+    ) -> Result<()> {
+        instructions::cancel_order::handler(
+            ctx,
+            order_id,
+            event_id,
+        )
+    }
+
+    /// Match compatible orders automatically
+    pub fn match_orders(
+        ctx: Context<MatchOrders>,
+        order_id_1: u64,
+        order_id_2: u64,
+        event_id: String,
+    ) -> Result<()> {
+        instructions::match_orders::handler(
+            ctx,
+            order_id_1,
+            order_id_2,
+            event_id,
+        )
+    }
 }

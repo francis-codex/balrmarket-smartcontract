@@ -102,3 +102,37 @@ pub struct MarketResolved {
     pub total_payout_pool: u64,
     pub resolution_timestamp: i64,
 }
+
+#[event]
+pub struct OrderPlaced {
+    pub order_id: u64,
+    pub event_id: String,
+    pub buyer: Pubkey,
+    pub order_type: String,
+    pub quantity: u64,
+    pub unit_price: u64,
+    pub total_amount: u64,
+    pub platform_fee: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct OrderMatched {
+    pub order_id_1: u64,
+    pub order_id_2: u64,
+    pub event_id: String,
+    pub buyer_1: Pubkey,
+    pub buyer_2: Pubkey,
+    pub quantity: u64,
+    pub unit_price: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct OrderCancelled {
+    pub order_id: u64,
+    pub event_id: String,
+    pub buyer: Pubkey,
+    pub refund_amount: u64,
+    pub timestamp: i64,
+}

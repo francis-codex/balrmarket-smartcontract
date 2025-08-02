@@ -4,8 +4,8 @@ use anchor_lang::prelude::*;
 pub struct OrderBook {
     pub event_id: String,
     pub market_phase: MarketPhase,
-    pub yes_orders: Vec<Order>,
-    pub no_orders: Vec<Order>,
+    pub yes_orders: Vec<BookOrder>,
+    pub no_orders: Vec<BookOrder>,
     pub best_yes_bid: u64,
     pub best_no_bid: u64,
     pub total_yes_volume: u64,
@@ -27,7 +27,7 @@ impl OrderBook {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct Order {
+pub struct BookOrder {
     pub user: Pubkey,
     pub quantity: u32,
     pub price: u64,
