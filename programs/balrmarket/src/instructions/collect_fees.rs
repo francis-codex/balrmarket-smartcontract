@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use crate::state::{GlobalState, Event, EventStatus};
 use crate::events::PlatformFeesCollected;
 use crate::error::ErrorCode;
@@ -33,6 +34,8 @@ pub struct CollectFees<'info> {
         constraint = admin_wallet.key() == global_state.admin @ ErrorCode::Unauthorized
     )]
     pub admin_wallet: SystemAccount<'info>,
+    
+    pub system_program: Program<'info, System>,
 }
 
 pub fn handler(
@@ -47,15 +50,17 @@ pub fn handler(
     
     let fees_to_collect = ctx.accounts.event.total_platform_fees;
     
-    // Transfer platform fees from event account to admin wallet
-    let event_lamports = ctx.accounts.event.to_account_info().lamports();
-    require!(
-        event_lamports >= fees_to_collect,
-        ErrorCode::InsufficientFunds
-    );
-    
-    **ctx.accounts.event.to_account_info().try_borrow_mut_lamports()? -= fees_to_collect;
-    **ctx.accounts.admin_wallet.to_account_info().try_borrow_mut_lamports()? += fees_to_collect;
+    // SECURITY FIX: Use secure CPI instead of direct lamport manipulation
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.event.to_account_info(),
+                to: ctx.accounts.admin_wallet.to_account_info(),
+            },
+        ),
+        fees_to_collect,
+    )?;
     
     // Reset the total platform fees to 0
     let event = &mut ctx.accounts.event;

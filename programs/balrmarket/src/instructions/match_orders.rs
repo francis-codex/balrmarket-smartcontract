@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use crate::state::{GlobalState, Event, Order, EscrowAccount, OrderType, OrderStatus, MatchedPair};
 use crate::events::{OrderMatched, MatchProcessed};
 use crate::error::ErrorCode;
@@ -118,14 +119,30 @@ pub fn handler(
         .checked_mul(no_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Settle escrow - transfer funds to counterparties
+    // SECURITY FIX: Use secure CPI for escrow settlement
     // YES buyer receives NO buyer's escrowed amount
-    **ctx.accounts.no_escrow.to_account_info().try_borrow_mut_lamports()? -= no_amount;
-    **ctx.accounts.yes_buyer.to_account_info().try_borrow_mut_lamports()? += no_amount;
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.no_escrow.to_account_info(),
+                to: ctx.accounts.yes_buyer.to_account_info(),
+            },
+        ),
+        no_amount,
+    )?;
     
     // NO buyer receives YES buyer's escrowed amount
-    **ctx.accounts.yes_escrow.to_account_info().try_borrow_mut_lamports()? -= yes_amount;
-    **ctx.accounts.no_buyer.to_account_info().try_borrow_mut_lamports()? += yes_amount;
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.yes_escrow.to_account_info(),
+                to: ctx.accounts.no_buyer.to_account_info(),
+            },
+        ),
+        yes_amount,
+    )?;
     
     // Update order quantities
     yes_order.quantity = yes_order.quantity

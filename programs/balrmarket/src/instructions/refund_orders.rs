@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use crate::state::{Event, Order, EscrowAccount, EventStatus, OrderStatus};
 use crate::events::OrderRefunded;
 use crate::error::ErrorCode;
@@ -59,15 +60,17 @@ pub fn handler(
     // Calculate refund amount (escrow amount minus any platform fees already collected)
     let refund_amount = escrow_account.amount;
     
-    // Transfer SOL from escrow back to buyer
-    let escrow_lamports = ctx.accounts.escrow_account.to_account_info().lamports();
-    require!(
-        escrow_lamports >= refund_amount,
-        ErrorCode::InsufficientFunds
-    );
-    
-    **ctx.accounts.escrow_account.to_account_info().try_borrow_mut_lamports()? -= refund_amount;
-    **ctx.accounts.buyer.to_account_info().try_borrow_mut_lamports()? += refund_amount;
+    // SECURITY FIX: Use secure CPI instead of direct lamport manipulation
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.escrow_account.to_account_info(),
+                to: ctx.accounts.buyer.to_account_info(),
+            },
+        ),
+        refund_amount,
+    )?;
     
     // Update order status
     order.status = OrderStatus::Refunded;

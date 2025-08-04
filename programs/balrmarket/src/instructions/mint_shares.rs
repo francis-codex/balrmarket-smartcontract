@@ -69,8 +69,20 @@ pub fn handler(
     let matched_pair = &ctx.accounts.matched_pair;
     let event = &ctx.accounts.event;
     
-    // Validate that this matched pair belongs to the event
+    // SECURITY: Enhanced validation for share minting
     require!(matched_pair.event_id == event_id, ErrorCode::InvalidInput);
+    
+    // SECURITY: Validate share quantity bounds
+    require!(
+        matched_pair.quantity > 0 && matched_pair.quantity <= 500,
+        ErrorCode::InvalidOrderQuantity
+    );
+    
+    // SECURITY: Ensure buyers are different (prevent self-trading)
+    require!(
+        matched_pair.yes_buyer != matched_pair.no_buyer,
+        ErrorCode::CannotTradeWithSelf
+    );
     
     let current_time = Clock::get()?.unix_timestamp;
     

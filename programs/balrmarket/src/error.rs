@@ -130,4 +130,16 @@ pub enum ErrorCode {
     
     #[msg("No unmatched orders found")]
     NoUnmatchedOrders = 6042,
+    
+    #[msg("Platform fee exceeds maximum allowed (5%)")]
+    PlatformFeeExceedsMaximum = 6043,
+    
+    #[msg("Account balance insufficient for rent exemption")]
+    InsufficientRentBalance = 6044,
+    
+    #[msg("Invalid share token configuration")]
+    InvalidShareToken = 6045,
+    
+    #[msg("Share minting failed - duplicate attempt")]
+    ShareAlreadyMinted = 6046,
 }

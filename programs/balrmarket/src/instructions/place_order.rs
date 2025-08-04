@@ -63,10 +63,22 @@ pub fn handler(
     quantity: u64,
     unit_price: u64,
 ) -> Result<()> {
-    // Validate input parameters
+    // SECURITY: Enhanced input validation
     require!(quantity > 0, ErrorCode::InvalidOrderQuantity);
     require!(unit_price > 0, ErrorCode::InvalidOrderPrice);
     require!(!event_id.is_empty(), ErrorCode::InvalidInput);
+    
+    // SECURITY: Validate unit price bounds (must be < 1 SOL)
+    require!(
+        unit_price < 1_000_000_000, // 1 SOL in lamports
+        ErrorCode::InvalidOrderPrice
+    );
+    
+    // SECURITY: Validate maximum order quantity (max 500 per order)
+    require!(
+        quantity <= 500,
+        ErrorCode::InvalidOrderQuantity
+    );
     
     let event = &ctx.accounts.event;
     let global_state = &ctx.accounts.global_state;

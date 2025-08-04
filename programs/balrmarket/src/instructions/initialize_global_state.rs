@@ -25,6 +25,16 @@ pub fn handler(
     platform_fee_primary: u16,
     platform_fee_secondary: u16,
 ) -> Result<()> {
+    // SECURITY: Validate platform fee bounds (max 5% = 500 basis points)
+    require!(
+        platform_fee_primary <= 500,
+        crate::error::ErrorCode::InvalidInput
+    );
+    require!(
+        platform_fee_secondary <= 500,
+        crate::error::ErrorCode::InvalidInput
+    );
+    
     let global_state = &mut ctx.accounts.global_state;
     
     global_state.admin = admin;

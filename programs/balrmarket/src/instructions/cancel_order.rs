@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use crate::state::{GlobalState, Event, Order, EscrowAccount, OrderStatus};
 use crate::events::OrderCancelled;
 use crate::error::ErrorCode;
@@ -57,9 +58,17 @@ pub fn handler(
     
     let refund_amount = escrow_account.amount;
     
-    // Transfer SOL back from escrow to buyer
-    **ctx.accounts.escrow_account.to_account_info().try_borrow_mut_lamports()? -= refund_amount;
-    **ctx.accounts.buyer.to_account_info().try_borrow_mut_lamports()? += refund_amount;
+    // SECURITY FIX: Use secure CPI instead of direct lamport manipulation
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.escrow_account.to_account_info(),
+                to: ctx.accounts.buyer.to_account_info(),
+            },
+        ),
+        refund_amount,
+    )?;
     
     // Update order status
     order.status = OrderStatus::Cancelled;
