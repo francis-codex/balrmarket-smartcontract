@@ -60,7 +60,7 @@ pub fn handler(
     // Calculate refund amount (escrow amount minus any platform fees already collected)
     let refund_amount = escrow_account.amount;
     
-    // SECURITY FIX: Use secure CPI instead of direct lamport manipulation
+    // Use secure CPI instead of direct lamport manipulation
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),

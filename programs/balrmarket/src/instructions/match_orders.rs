@@ -119,7 +119,7 @@ pub fn handler(
         .checked_mul(no_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // SECURITY FIX: Use secure CPI for escrow settlement
+    // Use secure CPI for escrow settlement
     // YES buyer receives NO buyer's escrowed amount
     system_program::transfer(
         CpiContext::new(
