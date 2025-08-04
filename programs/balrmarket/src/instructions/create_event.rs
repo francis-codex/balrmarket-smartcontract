@@ -110,6 +110,9 @@ pub fn handler(
     event.shares_minted_no = 0;
     event.remaining_shares = max_shares as u64;
     event.total_matches = 0;
+    event.event_start_time = match_timestamp;
+    event.primary_market_closed_at = None;
+    event.total_platform_fees = 0;
     event.bump = ctx.bumps.event;
     
     // Initialize order book for primary market

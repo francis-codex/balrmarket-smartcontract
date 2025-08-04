@@ -112,4 +112,22 @@ pub enum ErrorCode {
     
     #[msg("Invalid share type")]
     InvalidShareType = 6036,
+    
+    #[msg("Event has not started yet")]
+    EventNotStarted = 6037,
+    
+    #[msg("Primary market already closed")]
+    PrimaryAlreadyClosed = 6038,
+    
+    #[msg("Primary market not closed")]
+    PrimaryNotClosed = 6039,
+    
+    #[msg("Order not pending")]
+    OrderNotPending = 6040,
+    
+    #[msg("No platform fees to collect")]
+    NoFeesToCollect = 6041,
+    
+    #[msg("No unmatched orders found")]
+    NoUnmatchedOrders = 6042,
 }

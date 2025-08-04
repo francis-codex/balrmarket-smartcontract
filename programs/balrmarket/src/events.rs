@@ -47,9 +47,6 @@ pub struct ShareMintedOld {
 #[event]
 pub struct PrimaryMarketClosed {
     pub event_id: String,
-    pub total_yes_minted: u32,
-    pub total_no_minted: u32,
-    pub unmatched_orders: u32,
     pub timestamp: i64,
 }
 
@@ -157,5 +154,22 @@ pub struct MatchProcessed {
     pub quantity: u64,
     pub yes_price: u64,
     pub no_price: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct OrderRefunded {
+    pub order_id: u64,
+    pub event_id: String,
+    pub buyer: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct PlatformFeesCollected {
+    pub event_id: String,
+    pub admin: Pubkey,
+    pub amount: u64,
     pub timestamp: i64,
 }

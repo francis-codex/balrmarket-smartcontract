@@ -6,6 +6,9 @@ pub mod cancel_order;
 pub mod match_orders;
 pub mod mint_shares;
 pub mod process_match;
+pub mod end_primary_market;
+pub mod refund_orders;
+pub mod collect_fees;
 
 pub use initialize_global_state::*;
 pub use create_market::*;
@@ -15,3 +18,6 @@ pub use cancel_order::*;
 pub use match_orders::*;
 pub use mint_shares::*;
 pub use process_match::*;
+pub use end_primary_market::*;
+pub use refund_orders::*;
+pub use collect_fees::*;

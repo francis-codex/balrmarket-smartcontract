@@ -18,7 +18,8 @@ pub struct PlaceOrder<'info> {
         mut,
         seeds = [b"event", event.market_id.as_bytes(), event_id.as_bytes()],
         bump,
-        constraint = event.status == EventStatus::Created || event.status == EventStatus::PrimaryActive @ ErrorCode::PrimaryMarketClosed,
+        constraint = event.status == EventStatus::Created || event.status == EventStatus::Active @ ErrorCode::PrimaryMarketClosed,
+        constraint = event.status != EventStatus::PrimaryClosed @ ErrorCode::PrimaryAlreadyClosed,
         constraint = Clock::get()?.unix_timestamp < event.primary_market_close @ ErrorCode::PrimaryMarketClosed
     )]
     pub event: Account<'info, Event>,
@@ -138,6 +139,12 @@ pub fn handler(
     escrow_account.event_id = event_id.clone();
     escrow_account.amount = total_amount;
     escrow_account.bump = ctx.bumps.escrow_account;
+    
+    // Accumulate platform fee in event
+    let event = &mut ctx.accounts.event;
+    event.total_platform_fees = event.total_platform_fees
+        .checked_add(platform_fee)
+        .ok_or(ErrorCode::ArithmeticOverflow)?;
     
     // Emit OrderPlaced event
     emit!(OrderPlaced {

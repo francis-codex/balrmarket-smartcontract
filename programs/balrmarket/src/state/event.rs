@@ -27,6 +27,9 @@ pub struct Event {
     pub shares_minted_no: u64,
     pub remaining_shares: u64,
     pub total_matches: u64,
+    pub event_start_time: i64,
+    pub primary_market_closed_at: Option<i64>,
+    pub total_platform_fees: u64,
     pub bump: u8,
 }
 
@@ -46,13 +49,18 @@ impl Event {
         8 + 8 +     // shares_minted_yes, shares_minted_no
         8 +         // remaining_shares
         8 +         // total_matches
+        8 +         // event_start_time
+        1 + 8 +     // primary_market_closed_at (Option<i64>)
+        8 +         // total_platform_fees
         1;          // bump
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
 pub enum EventStatus {
     Created,
-    PrimaryActive,
+    Active,        // renamed from PrimaryActive for consistency
+    PrimaryClosed, // new - primary market closed
     SecondaryActive,
+    Settled,       // for future use
     Resolved,
 }

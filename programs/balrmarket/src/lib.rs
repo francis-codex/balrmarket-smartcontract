@@ -144,4 +144,39 @@ pub mod balrmarket {
             matched_pair_id,
         )
     }
+
+    /// End primary market when event starts
+    pub fn end_primary_market(
+        ctx: Context<EndPrimaryMarket>,
+        event_id: String,
+    ) -> Result<()> {
+        instructions::end_primary_market::handler(
+            ctx,
+            event_id,
+        )
+    }
+
+    /// Refund unmatched orders after primary market closure
+    pub fn refund_unmatched_orders(
+        ctx: Context<RefundOrders>,
+        event_id: String,
+        order_id: u64,
+    ) -> Result<()> {
+        instructions::refund_orders::handler(
+            ctx,
+            event_id,
+            order_id,
+        )
+    }
+
+    /// Collect platform fees accumulated in event
+    pub fn collect_platform_fees(
+        ctx: Context<CollectFees>,
+        event_id: String,
+    ) -> Result<()> {
+        instructions::collect_fees::handler(
+            ctx,
+            event_id,
+        )
+    }
 }

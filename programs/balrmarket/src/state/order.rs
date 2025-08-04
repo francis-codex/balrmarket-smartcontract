@@ -39,6 +39,7 @@ pub enum OrderStatus {
     Pending,
     Matched,
     Cancelled,
+    Refunded,
 }
 
 #[account]
