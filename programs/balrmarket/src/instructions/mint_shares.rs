@@ -64,10 +64,10 @@ pub struct MintShares<'info> {
 pub fn handler(
     ctx: Context<MintShares>,
     event_id: String,
-    matched_pair_id: u64,
+    _matched_pair_id: u64,
 ) -> Result<()> {
     let matched_pair = &ctx.accounts.matched_pair;
-    let event = &ctx.accounts.event;
+    let _event = &ctx.accounts.event;
     
     // Enhanced validation for share minting
     require!(matched_pair.event_id == event_id, ErrorCode::InvalidInput);

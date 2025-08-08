@@ -84,7 +84,7 @@ pub struct ProcessMatch<'info> {
 pub fn handler(
     ctx: Context<ProcessMatch>,
     event_id: String,
-    matched_pair_id: u64,
+    _matched_pair_id: u64,
 ) -> Result<()> {
     let matched_pair = &ctx.accounts.matched_pair;
     let yes_order = &mut ctx.accounts.yes_order;
