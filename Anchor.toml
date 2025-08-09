@@ -19,7 +19,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/utils/test_utils.ts tests/instructions/test_initialize_global_state.ts tests/instructions/test_create_market.ts tests/instructions/test_create_event.ts tests/instructions/test_place_order.ts tests/instructions/test_cancel_order.ts tests/instructions/test_match_orders.ts tests/state/test_account_sizes.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/utils/test_utils.ts tests/instructions/test_initialize_global_state.ts tests/instructions/test_create_market.ts tests/instructions/test_create_event.ts tests/instructions/test_place_order.ts tests/instructions/test_cancel_order.ts tests/instructions/test_match_orders.ts tests/instructions/test_mint_shares.ts tests/state/test_account_sizes.ts"
 
 [test]
 startup_wait = 5000
