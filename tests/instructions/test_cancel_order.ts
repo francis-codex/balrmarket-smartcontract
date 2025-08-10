@@ -22,12 +22,10 @@ describe("cancel_order", () => {
   const eventId = "CANCEL_TEST_EVENT";
   
   before(async () => {
-    // Create keypairs
     admin = Keypair.generate();
     buyer1 = Keypair.generate();
     buyer2 = Keypair.generate();
     
-    // Airdrop SOL
     const adminAirdrop = await provider.connection.requestAirdrop(
       admin.publicKey,
       15 * LAMPORTS_PER_SOL
@@ -67,23 +65,23 @@ describe("cancel_order", () => {
       await program.account.globalState.fetch(globalStatePda);
       console.log("       Global state exists");
     } catch (error) {
-      console.log("         Global state not initialized");
+      console.log("       ï¿½ Global state not initialized");
     }
     
     // Check market
     try {
       await program.account.market.fetch(marketPda);
-      console.log("         Market exists, using existing setup");
+      console.log("       ï¿½ Market exists, using existing setup");
     } catch (error) {
-      console.log("         Market not initialized");
+      console.log("       ï¿½ Market not initialized");
     }
     
     // Check event  
     try {
       await program.account.event.fetch(eventPda);
-      console.log("         Event exists, using existing setup");
+      console.log("       ï¿½ Event exists, using existing setup");
     } catch (error) {
-      console.log("         Event not initialized");
+      console.log("       ï¿½ Event not initialized");
     }
   });
 
@@ -146,7 +144,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -157,7 +155,7 @@ describe("cancel_order", () => {
     // Create a test order first
     const orderAccounts = await createTestOrder(orderId, buyer1, { yes: {} }, quantity, unitPrice);
     if (!orderAccounts) {
-      console.log("        Could not create test order, skipping test");
+      console.log("      ï¿½ Could not create test order, skipping test");
       return;
     }
 
@@ -202,7 +200,7 @@ describe("cancel_order", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -213,7 +211,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -224,7 +222,7 @@ describe("cancel_order", () => {
     // Create a test order first
     const orderAccounts = await createTestOrder(orderId, buyer1, { no: {} }, quantity, unitPrice);
     if (!orderAccounts) {
-      console.log("        Could not create test order, skipping test");
+      console.log("      ï¿½ Could not create test order, skipping test");
       return;
     }
 
@@ -270,7 +268,7 @@ describe("cancel_order", () => {
         if (error.toString().includes("Unauthorized") || 
             error.toString().includes("AccountNotInitialized") ||
             error.toString().includes("ConstraintSeeds")) {
-          console.log("        Test requires proper setup - constraint working correctly");
+          console.log("      ï¿½ Test requires proper setup - constraint working correctly");
         } else {
           throw error;
         }
@@ -284,7 +282,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -295,7 +293,7 @@ describe("cancel_order", () => {
     // Create a test order with buyer1
     const orderAccounts = await createTestOrder(orderId, buyer1, { yes: {} }, quantity, unitPrice);
     if (!orderAccounts) {
-      console.log("        Could not create test order, skipping test");
+      console.log("      ï¿½ Could not create test order, skipping test");
       return;
     }
 
@@ -333,7 +331,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -381,7 +379,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -392,7 +390,7 @@ describe("cancel_order", () => {
     // Create and then cancel an order first to set status to Cancelled
     const orderAccounts = await createTestOrder(orderId, buyer1, { no: {} }, quantity, unitPrice);
     if (!orderAccounts) {
-      console.log("        Could not create test order, skipping test");
+      console.log("      ï¿½ Could not create test order, skipping test");
       return;
     }
 
@@ -450,7 +448,7 @@ describe("cancel_order", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -461,7 +459,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -472,7 +470,7 @@ describe("cancel_order", () => {
     // Create a test order first
     const orderAccounts = await createTestOrder(orderId, buyer1, { yes: {} }, quantity, unitPrice);
     if (!orderAccounts) {
-      console.log("        Could not create test order, skipping test");
+      console.log("      ï¿½ Could not create test order, skipping test");
       return;
     }
 
@@ -520,7 +518,7 @@ describe("cancel_order", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -531,7 +529,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -542,7 +540,7 @@ describe("cancel_order", () => {
     // Create a test order first
     const orderAccounts = await createTestOrder(orderId, buyer1, { no: {} }, quantity, unitPrice);
     if (!orderAccounts) {
-      console.log("        Could not create test order, skipping test");
+      console.log("      ï¿½ Could not create test order, skipping test");
       return;
     }
 
@@ -601,7 +599,7 @@ describe("cancel_order", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -612,7 +610,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -645,7 +643,7 @@ describe("cancel_order", () => {
         .signers([buyer1])
         .rpc();
       
-      console.log("        System pause test skipped - pause functionality not implemented");
+      console.log("      ï¿½ System pause test skipped - pause functionality not implemented");
     } catch (error) {
       if (error.toString().includes("SystemPaused")) {
         // Expected behavior when system is paused
@@ -653,7 +651,7 @@ describe("cancel_order", () => {
       } else if (error.toString().includes("Unauthorized") || 
                  error.toString().includes("AccountNotInitialized") ||
                  error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -664,7 +662,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -675,7 +673,7 @@ describe("cancel_order", () => {
     // Create a test order with buyer1
     const orderAccounts = await createTestOrder(orderId, buyer1, { yes: {} }, quantity, unitPrice);
     if (!orderAccounts) {
-      console.log("        Could not create test order, skipping test");
+      console.log("      ï¿½ Could not create test order, skipping test");
       return;
     }
 
@@ -718,7 +716,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -744,7 +742,7 @@ describe("cancel_order", () => {
     }
     
     if (createdOrders.length === 0) {
-      console.log("        Could not create any test orders, skipping test");
+      console.log("      ï¿½ Could not create any test orders, skipping test");
       return;
     }
     
@@ -778,7 +776,7 @@ describe("cancel_order", () => {
         if (error.toString().includes("Unauthorized") || 
             error.toString().includes("AccountNotInitialized") ||
             error.toString().includes("ConstraintSeeds")) {
-          console.log(`        Order ${orderId} cancellation requires proper setup - constraint working correctly`);
+          console.log(`      ï¿½ Order ${orderId} cancellation requires proper setup - constraint working correctly`);
         } else {
           throw error;
         }
@@ -790,7 +788,7 @@ describe("cancel_order", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -801,7 +799,7 @@ describe("cancel_order", () => {
     // Create a test order first
     const orderAccounts = await createTestOrder(orderId, buyer1, { yes: {} }, quantity, unitPrice);
     if (!orderAccounts) {
-      console.log("        Could not create test order, skipping test");
+      console.log("      ï¿½ Could not create test order, skipping test");
       return;
     }
 

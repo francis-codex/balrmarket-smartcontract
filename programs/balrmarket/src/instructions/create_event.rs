@@ -56,7 +56,6 @@ pub fn handler(
     opta_odds_yes: u16,
     match_timestamp: i64,
 ) -> Result<()> {
-    // Validate input parameters
     require!(event_id.len() <= 50, ErrorCode::EventIdTooLong);
     require!(question.len() <= 200, ErrorCode::QuestionTooLong);
     require!(!event_id.is_empty() && !question.is_empty(), ErrorCode::InvalidInput);
@@ -64,26 +63,22 @@ pub fn handler(
     require!(max_shares % 2 == 0, ErrorCode::ShareCountMustBeEven);
     require!(opta_odds_yes > 0 && opta_odds_yes < 10000, ErrorCode::InvalidOdds);
     
-    // Validate timing constraints
     let current_time = Clock::get()?.unix_timestamp;
     require!(match_timestamp > current_time + 86400, ErrorCode::MatchTooSoon);
     
-    // Verify admin permissions and system status
     let global_state = &ctx.accounts.global_state;
     require!(!global_state.is_paused, ErrorCode::SystemPaused);
     require!(ctx.accounts.admin.key() == global_state.admin, ErrorCode::Unauthorized);
     
-    // Verify market exists and belongs to admin
     let market = &mut ctx.accounts.market;
     require!(market.admin == ctx.accounts.admin.key(), ErrorCode::Unauthorized);
     require!(market.status == MarketStatus::Created, ErrorCode::InvalidMarketStatus);
     
-    // Calculate normalized share prices from OPTA odds (removing bookmaker margin)
+    // Calculate share prices from OPTA odds
     let normalized_odds = normalize_opta_odds(opta_odds_yes);
     let yes_price_lamports = (normalized_odds.0 as u64 * LAMPORTS_PER_SOL) / 10000;
     let no_price_lamports = (normalized_odds.1 as u64 * LAMPORTS_PER_SOL) / 10000;
     
-    // Initialize event account
     let event = &mut ctx.accounts.event;
     event.event_id = event_id.clone();
     event.market_id = market.market_id.clone();
@@ -96,10 +91,10 @@ pub fn handler(
     event.yes_share_price = yes_price_lamports;
     event.no_share_price = no_price_lamports;
     event.created_at = current_time;
-    event.primary_market_close = match_timestamp - 300; // 5 minutes before match
+    event.primary_market_close = match_timestamp - 300;
     event.secondary_market_open = match_timestamp;
-    event.secondary_market_close = match_timestamp + 6300; // 105 minutes (90 + 15 injury time)
-    event.resolution_timestamp = 0; // Will be set when resolved
+    event.secondary_market_close = match_timestamp + 6300;
+    event.resolution_timestamp = 0;
     event.admin = ctx.accounts.admin.key();
     event.status = EventStatus::Created;
     event.payout_pool = 0;
@@ -115,7 +110,6 @@ pub fn handler(
     event.total_platform_fees = 0;
     event.bump = ctx.bumps.event;
     
-    // Initialize order book for primary market
     let order_book = &mut ctx.accounts.order_book;
     order_book.event_id = event_id.clone();
     order_book.market_phase = MarketPhase::Primary;
@@ -127,13 +121,11 @@ pub fn handler(
     order_book.total_no_volume = 0;
     order_book.last_price_update = current_time;
     order_book.bump = ctx.bumps.order_book;
-    // Update counters
     let global_state = &mut ctx.accounts.global_state;
     global_state.total_events = global_state.total_events.checked_add(1).unwrap();
     
     market.total_events = market.total_events.checked_add(1).unwrap();
     
-    // Emit event for backend synchronization
     emit!(EventCreated {
         event_id,
         market_id: market.market_id.clone(),

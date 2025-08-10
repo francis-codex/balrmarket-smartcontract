@@ -51,13 +51,11 @@ pub fn handler(
     let order = &mut ctx.accounts.order;
     let escrow_account = &ctx.accounts.escrow_account;
     
-    // Verify the order is eligible for refund
     require!(
         order.status == OrderStatus::Pending,
         ErrorCode::OrderNotPending
     );
     
-    // Calculate refund amount (escrow amount minus any platform fees already collected)
     let refund_amount = escrow_account.amount;
     
     // Use secure CPI instead of direct lamport manipulation
@@ -72,10 +70,8 @@ pub fn handler(
         refund_amount,
     )?;
     
-    // Update order status
     order.status = OrderStatus::Refunded;
     
-    // Emit event
     emit!(OrderRefunded {
         order_id,
         event_id,

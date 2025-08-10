@@ -22,12 +22,10 @@ describe("refund_orders", () => {
   const eventId = "REFUND_TEST_EVENT";
   
   before(async () => {
-    // Create keypairs
     admin = Keypair.generate();
     buyer = Keypair.generate();
     otherUser = Keypair.generate();
     
-    // Airdrop SOL
     const accounts = [admin, buyer, otherUser];
     for (const account of accounts) {
       const airdrop = await provider.connection.requestAirdrop(
@@ -196,9 +194,8 @@ describe("refund_orders", () => {
       const buyerBalanceAfter = await provider.connection.getBalance(buyer.publicKey);
       expect(buyerBalanceAfter).to.be.greaterThan(buyerBalanceBefore);
       
-      // The exact amount may differ due to transaction fees
       const balanceIncrease = buyerBalanceAfter - buyerBalanceBefore;
-      expect(balanceIncrease).to.be.closeTo(refundAmount, 10000); // Allow 0.00001 SOL difference for fees
+      expect(balanceIncrease).to.be.closeTo(refundAmount, 10000);
     } catch (error) {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||

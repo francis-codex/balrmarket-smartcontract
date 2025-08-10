@@ -36,22 +36,19 @@ pub fn handler(
     team_b: String,
     match_timestamp: i64,
 ) -> Result<()> {
-    // Validate input parameters
     require!(market_id.len() <= 50, ErrorCode::MarketIdTooLong);
     require!(team_a.len() <= 100, ErrorCode::TeamNameTooLong);
     require!(team_b.len() <= 100, ErrorCode::TeamNameTooLong);
     require!(!team_a.is_empty() && !team_b.is_empty(), ErrorCode::InvalidInput);
     
-    // Validate timing - match must be at least 24 hours in the future
+    // Match must be at least 24 hours in the future
     let current_time = Clock::get()?.unix_timestamp;
     require!(match_timestamp > current_time + 86400, ErrorCode::MatchTooSoon);
     
-    // Verify admin permissions
     let global_state = &ctx.accounts.global_state;
     require!(!global_state.is_paused, ErrorCode::SystemPaused);
     require!(ctx.accounts.admin.key() == global_state.admin, ErrorCode::Unauthorized);
     
-    // Initialize market account
     let market = &mut ctx.accounts.market;
     market.market_id = market_id.clone();
     market.team_a = team_a.clone();

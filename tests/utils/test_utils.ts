@@ -5,18 +5,14 @@ describe("Utility Functions Tests", () => {
 
   describe("OPTA Odds Normalization", () => {
     it("should normalize OPTA odds correctly for 60% YES probability", () => {
-      // Test case: 60% YES with bookmaker margin
-      const yesOddsBp = 6000; // 60%
+      const yesOddsBp = 6000;
       
-      // Calculate expected normalized values
       const yesProb = yesOddsBp / 10000.0;
       const noProb = (10000 - yesOddsBp) / 10000.0;
       const totalProb = yesProb + noProb;
       const expectedYes = Math.floor((yesProb / totalProb) * 10000);
       const expectedNo = 10000 - expectedYes;
       
-      // In this case, since there's no actual margin (60% + 40% = 100%), 
-      // the normalized values should remain the same
       expect(expectedYes).to.equal(6000);
       expect(expectedNo).to.equal(4000);
       expect(expectedYes + expectedNo).to.equal(10000);
@@ -52,10 +48,7 @@ describe("Utility Functions Tests", () => {
     });
 
     it("should normalize OPTA odds with bookmaker margin", () => {
-      // Simulate a case with bookmaker margin where probabilities don't sum to 100%
-      // For example, if bookmaker has 105% total probability (5% margin)
-      // This would require modifying the input to simulate overround
-      const yesOddsBp = 5250; // Slightly higher than 50% to simulate margin
+      const yesOddsBp = 5250;
       
       const yesProb = yesOddsBp / 10000.0;
       const noProb = (10000 - yesOddsBp) / 10000.0;
@@ -111,8 +104,7 @@ describe("Utility Functions Tests", () => {
     });
 
     it("should handle edge case of 0% and 100% probabilities", () => {
-      // Test 100% YES (though this shouldn't occur in practice)
-      const yesProbabilityBp = 10000; // 100%
+      const yesProbabilityBp = 10000;
       const expectedYesPrice = (yesProbabilityBp * LAMPORTS_PER_SOL) / 10000;
       const expectedNoPrice = LAMPORTS_PER_SOL - expectedYesPrice;
       
@@ -120,8 +112,7 @@ describe("Utility Functions Tests", () => {
       expect(expectedNoPrice).to.equal(0);
       expect(expectedYesPrice + expectedNoPrice).to.equal(LAMPORTS_PER_SOL);
       
-      // Test 0% YES
-      const zeroYesProbabilityBp = 0; // 0%
+      const zeroYesProbabilityBp = 0;
       const expectedZeroYesPrice = (zeroYesProbabilityBp * LAMPORTS_PER_SOL) / 10000;
       const expectedFullNoPrice = LAMPORTS_PER_SOL - expectedZeroYesPrice;
       
@@ -133,15 +124,14 @@ describe("Utility Functions Tests", () => {
 
   describe("Event Timing Validation", () => {
     it("should validate correct event timing", () => {
-      const currentTime = Date.now() / 1000; // Current time in seconds
-      const matchTimestamp = currentTime + (25 * 3600); // 25 hours in future
+      const currentTime = Date.now() / 1000;
+      const matchTimestamp = currentTime + (25 * 3600);
       
-      const expectedPrimaryClose = matchTimestamp - 300; // 5 minutes before
+      const expectedPrimaryClose = matchTimestamp - 300;
       const expectedSecondaryOpen = matchTimestamp;
-      const expectedSecondaryClose = matchTimestamp + 6300; // 105 minutes after
+      const expectedSecondaryClose = matchTimestamp + 6300;
       
-      // Validate the timing logic manually since we can't call the Rust function directly
-      expect(matchTimestamp).to.be.greaterThan(currentTime + 86400); // At least 24 hours
+      expect(matchTimestamp).to.be.greaterThan(currentTime + 86400);
       expect(expectedPrimaryClose).to.be.lessThan(matchTimestamp);
       expect(expectedSecondaryOpen).to.equal(matchTimestamp);
       expect(expectedSecondaryClose).to.be.greaterThan(matchTimestamp);
@@ -149,40 +139,34 @@ describe("Utility Functions Tests", () => {
 
     it("should reject matches scheduled too soon", () => {
       const currentTime = Date.now() / 1000;
-      const matchTimestamp = currentTime + (23 * 3600); // 23 hours in future (too soon)
+      const matchTimestamp = currentTime + (23 * 3600);
       
-      // This should fail validation
       expect(matchTimestamp).to.be.lessThan(currentTime + 86400);
     });
 
     it("should calculate market phase timings correctly", () => {
       const currentTime = Date.now() / 1000;
-      const matchTimestamp = currentTime + (48 * 3600); // 48 hours in future
+      const matchTimestamp = currentTime + (48 * 3600);
       
-      const primaryMarketClose = matchTimestamp - 300; // 5 minutes before match
-      const secondaryMarketOpen = matchTimestamp; // Match start
-      const secondaryMarketClose = matchTimestamp + 6300; // 105 minutes after match
+      const primaryMarketClose = matchTimestamp - 300;
+      const secondaryMarketOpen = matchTimestamp;
+      const secondaryMarketClose = matchTimestamp + 6300;
       
-      // Validate phases don't overlap
       expect(primaryMarketClose).to.be.lessThan(secondaryMarketOpen);
       expect(secondaryMarketOpen).to.be.lessThan(secondaryMarketClose);
-      
-      // Validate timing constraints
-      expect(primaryMarketClose - currentTime).to.be.greaterThan(86400 - 300); // At least ~24 hours
-      expect(secondaryMarketClose - secondaryMarketOpen).to.equal(6300); // Exactly 105 minutes
+      expect(primaryMarketClose - currentTime).to.be.greaterThan(86400 - 300);
+      expect(secondaryMarketClose - secondaryMarketOpen).to.equal(6300);
     });
   });
 
   describe("Market Phase Activity Checks", () => {
     it("should correctly identify primary market activity", () => {
       const currentTime = Date.now() / 1000;
-      const primaryMarketClose = currentTime + 3600; // 1 hour in future
+      const primaryMarketClose = currentTime + 3600;
       
-      // Primary market should be active if current time < close time
       const isActive = currentTime < primaryMarketClose;
       expect(isActive).to.be.true;
       
-      // Primary market should be inactive if current time >= close time
       const futureTime = primaryMarketClose + 100;
       const isInactive = futureTime < primaryMarketClose;
       expect(isInactive).to.be.false;
@@ -190,19 +174,16 @@ describe("Utility Functions Tests", () => {
 
     it("should correctly identify secondary market activity", () => {
       const currentTime = Date.now() / 1000;
-      const secondaryMarketOpen = currentTime - 1800; // 30 minutes ago
-      const secondaryMarketClose = currentTime + 3600; // 1 hour in future
+      const secondaryMarketOpen = currentTime - 1800;
+      const secondaryMarketClose = currentTime + 3600;
       
-      // Secondary market should be active if within the window
       const isActive = currentTime >= secondaryMarketOpen && currentTime < secondaryMarketClose;
       expect(isActive).to.be.true;
       
-      // Should be inactive before open
       const beforeOpen = secondaryMarketOpen - 100;
       const isInactiveBeforeOpen = beforeOpen >= secondaryMarketOpen && beforeOpen < secondaryMarketClose;
       expect(isInactiveBeforeOpen).to.be.false;
       
-      // Should be inactive after close
       const afterClose = secondaryMarketClose + 100;
       const isInactiveAfterClose = afterClose >= secondaryMarketOpen && afterClose < secondaryMarketClose;
       expect(isInactiveAfterClose).to.be.false;
@@ -403,7 +384,7 @@ describe("Utility Functions Tests", () => {
 
     it("should reject zero quantity", () => {
       const quantity = 0;
-      expect(quantity).to.equal(0); // Should fail validation
+      expect(quantity).to.equal(0);
     });
 
     it("should reject quantities exceeding available shares", () => {
@@ -546,7 +527,6 @@ describe("Utility Functions Tests", () => {
       const fee = (baseAmount * feeBasisPoints) / 10000;
       const totalCost = baseAmount + fee;
       
-      // Validate pricing
       const yesPrice = 0.6 * LAMPORTS_PER_SOL;
       const noPrice = 0.4 * LAMPORTS_PER_SOL;
       const canMatch = yesPrice + noPrice === LAMPORTS_PER_SOL;
@@ -554,7 +534,6 @@ describe("Utility Functions Tests", () => {
       expect(totalCost).to.equal(0.51 * LAMPORTS_PER_SOL);
       expect(canMatch).to.be.true;
       
-      // Validate shares
       const quantity = 100;
       const maxShares = 1000;
       const currentMinted = 200;
@@ -568,15 +547,12 @@ describe("Utility Functions Tests", () => {
       const matchTime = currentTime + (25 * 3600); // 25 hours
       const primaryClose = matchTime - 300; // 5 minutes before
       
-      // Timing validation
       const isValidTiming = matchTime > currentTime + 86400;
       expect(isValidTiming).to.be.true;
       
-      // Market phase validation
       const isPrimaryActive = currentTime < primaryClose;
       expect(isPrimaryActive).to.be.true;
       
-      // Price validation
       const yesProbability = 6500; // 65%
       const yesPrice = (yesProbability * LAMPORTS_PER_SOL) / 10000;
       const noPrice = LAMPORTS_PER_SOL - yesPrice;

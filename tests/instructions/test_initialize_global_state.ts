@@ -16,17 +16,14 @@ describe("initialize_global_state", () => {
   let globalStateBump: number;
   
   before(async () => {
-    // Create admin keypair
     admin = Keypair.generate();
     
-    // Airdrop SOL to admin
     const airdropTx = await provider.connection.requestAirdrop(
       admin.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL
     );
     await provider.connection.confirmTransaction(airdropTx);
     
-    // Derive global state PDA
     [globalStatePda, globalStateBump] = PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
       program.programId
@@ -199,7 +196,6 @@ describe("initialize_global_state", () => {
       
       expect.fail("Should have failed trying to initialize existing account");
     } catch (error) {
-      // Should fail because account already exists
       expect(error.toString()).to.include("already in use");
     }
   });

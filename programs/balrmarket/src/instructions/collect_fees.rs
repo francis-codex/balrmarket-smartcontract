@@ -42,7 +42,6 @@ pub fn handler(
     ctx: Context<CollectFees>,
     event_id: String,
 ) -> Result<()> {
-    // Check if there are platform fees to collect
     require!(
         ctx.accounts.event.total_platform_fees > 0,
         ErrorCode::NoFeesToCollect
@@ -50,7 +49,6 @@ pub fn handler(
     
     let fees_to_collect = ctx.accounts.event.total_platform_fees;
     
-    // Use secure CPI instead of direct lamport manipulation
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -62,11 +60,9 @@ pub fn handler(
         fees_to_collect,
     )?;
     
-    // Reset the total platform fees to 0
     let event = &mut ctx.accounts.event;
     event.total_platform_fees = 0;
     
-    // Emit event
     emit!(PlatformFeesCollected {
         event_id,
         admin: ctx.accounts.admin.key(),

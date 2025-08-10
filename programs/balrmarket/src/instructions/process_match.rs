@@ -91,10 +91,7 @@ pub fn handler(
     let no_order = &mut ctx.accounts.no_order;
     let event = &mut ctx.accounts.event;
     
-    // Validate that this matched pair belongs to the correct event
     require!(matched_pair.event_id == event_id, ErrorCode::InvalidInput);
-    
-    // Validate that share tokens exist and have correct quantities
     let yes_share_token = &ctx.accounts.yes_share_token;
     let no_share_token = &ctx.accounts.no_share_token;
     
@@ -107,7 +104,6 @@ pub fn handler(
         ErrorCode::InvalidInput
     );
     
-    // Update payout pool with the matched amounts
     let total_matched_value = matched_pair.quantity
         .checked_mul(matched_pair.yes_price.checked_add(matched_pair.no_price).unwrap())
         .ok_or(ErrorCode::ArithmeticOverflow)?;
@@ -116,7 +112,6 @@ pub fn handler(
         .checked_add(total_matched_value)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Ensure orders are marked as processed
     if yes_order.quantity == 0 && yes_order.status != OrderStatus::Matched {
         yes_order.status = OrderStatus::Matched;
     }
@@ -124,11 +119,6 @@ pub fn handler(
         no_order.status = OrderStatus::Matched;
     }
     
-    // Additional accounting could be done here:
-    // - Update user portfolios
-    // - Track trading volumes
-    // - Update market statistics
-    // - Calculate market maker rewards
     
     Ok(())
 }

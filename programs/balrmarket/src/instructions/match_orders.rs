@@ -86,13 +86,12 @@ pub fn handler(
     let no_order = &mut ctx.accounts.no_order;
     let event = &mut ctx.accounts.event;
 
-    // Validate price compatibility (must sum to 1 SOL within tolerance)
+    // Prices must sum to ~1 SOL
     let one_sol = 1_000_000_000u64; // 1 SOL in lamports
     let combined_price = yes_order.unit_price
         .checked_add(no_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Allow 1% tolerance for price matching
     let tolerance = one_sol / 100;
     require!(
         combined_price >= one_sol.saturating_sub(tolerance) && 
@@ -100,18 +99,13 @@ pub fn handler(
         ErrorCode::InvalidPriceSum
     );
     
-    // FIFO logic: Check that these are the earliest available orders
-    // In a full implementation, you'd query all pending orders and sort by created_at
-    // For now, we assume the caller provides the correct earliest orders
+    // FIFO logic assumed (caller provides earliest orders)
     
-    // Determine match quantity (minimum of both orders)
     let match_quantity = std::cmp::min(yes_order.quantity, no_order.quantity);
     require!(match_quantity > 0, ErrorCode::InvalidOrderQuantity);
     
-    // Check remaining shares in event
     require!(match_quantity <= event.remaining_shares, ErrorCode::InsufficientShares);
     
-    // Calculate amounts for settlement
     let yes_amount = match_quantity
         .checked_mul(yes_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
@@ -119,7 +113,6 @@ pub fn handler(
         .checked_mul(no_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Use secure CPI for escrow settlement
     // YES buyer receives NO buyer's escrowed amount
     system_program::transfer(
         CpiContext::new(
@@ -132,7 +125,6 @@ pub fn handler(
         no_amount,
     )?;
     
-    // NO buyer receives YES buyer's escrowed amount
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -144,7 +136,6 @@ pub fn handler(
         yes_amount,
     )?;
     
-    // Update order quantities
     yes_order.quantity = yes_order.quantity
         .checked_sub(match_quantity)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
@@ -152,7 +143,6 @@ pub fn handler(
         .checked_sub(match_quantity)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Update order total amounts
     yes_order.total_amount = yes_order.quantity
         .checked_mul(yes_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
@@ -160,11 +150,9 @@ pub fn handler(
         .checked_mul(no_order.unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Update escrow amounts
     ctx.accounts.yes_escrow.amount = yes_order.total_amount;
     ctx.accounts.no_escrow.amount = no_order.total_amount;
     
-    // Mark orders as matched if fully filled
     if yes_order.quantity == 0 {
         yes_order.status = OrderStatus::Matched;
     }
@@ -172,7 +160,6 @@ pub fn handler(
         no_order.status = OrderStatus::Matched;
     }
     
-    // Update event counters
     event.shares_minted_yes = event.shares_minted_yes
         .checked_add(match_quantity)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
@@ -188,7 +175,6 @@ pub fn handler(
     
     let current_time = Clock::get()?.unix_timestamp;
     
-    // Initialize matched pair record
     let matched_pair = &mut ctx.accounts.matched_pair;
     matched_pair.event_id = event_id.clone();
     matched_pair.yes_order_id = yes_order_id;
@@ -201,7 +187,6 @@ pub fn handler(
     matched_pair.matched_at = current_time;
     matched_pair.bump = ctx.bumps.matched_pair;
     
-    // Emit events
     emit!(OrderMatched {
         order_id_1: yes_order_id,
         order_id_2: no_order_id,

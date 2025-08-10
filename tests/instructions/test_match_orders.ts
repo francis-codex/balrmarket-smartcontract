@@ -23,13 +23,11 @@ describe("match_orders", () => {
   const eventId = "MATCH_TEST_EVENT";
   
   before(async () => {
-    // Create keypairs
     admin = Keypair.generate();
     authority = Keypair.generate();
     yesBuyer = Keypair.generate();
     noBuyer = Keypair.generate();
     
-    // Airdrop SOL
     const accounts = [admin, authority, yesBuyer, noBuyer];
     for (const account of accounts) {
       const airdrop = await provider.connection.requestAirdrop(
@@ -39,7 +37,6 @@ describe("match_orders", () => {
       await provider.connection.confirmTransaction(airdrop);
     }
     
-    // Derive PDAs
     [globalStatePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
       program.programId

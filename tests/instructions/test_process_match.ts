@@ -60,21 +60,21 @@ describe("process_match", () => {
       await program.account.globalState.fetch(globalStatePda);
       console.log("       Global state exists");
     } catch (error) {
-      console.log("         Global state not initialized");
+      console.log("       ï¿½ Global state not initialized");
     }
     
     try {
       await program.account.market.fetch(marketPda);
-      console.log("         Market exists, using existing setup");
+      console.log("       ï¿½ Market exists, using existing setup");
     } catch (error) {
-      console.log("         Market not initialized");
+      console.log("       ï¿½ Market not initialized");
     }
     
     try {
       await program.account.event.fetch(eventPda);
-      console.log("         Event exists, using existing setup");
+      console.log("       ï¿½ Event exists, using existing setup");
     } catch (error) {
-      console.log("         Event not initialized");
+      console.log("       ï¿½ Event not initialized");
     }
   });
 
@@ -240,7 +240,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -251,7 +251,7 @@ describe("process_match", () => {
     // Create complete matched pair with shares
     const matchResult = await createCompleteMatchedPair(1, quantity, yesPrice, noPrice);
     if (!matchResult) {
-      console.log("        Could not create complete matched pair, skipping test");
+      console.log("      ï¿½ Could not create complete matched pair, skipping test");
       return;
     }
 
@@ -306,7 +306,7 @@ describe("process_match", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -317,7 +317,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -328,7 +328,7 @@ describe("process_match", () => {
     // Create complete matched pair with shares
     const matchResult = await createCompleteMatchedPair(2, quantity, yesPrice, noPrice);
     if (!matchResult) {
-      console.log("        Could not create complete matched pair, skipping test");
+      console.log("      ï¿½ Could not create complete matched pair, skipping test");
       return;
     }
 
@@ -380,7 +380,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -391,7 +391,7 @@ describe("process_match", () => {
     // Create complete matched pair with shares
     const matchResult = await createCompleteMatchedPair(3, quantity, yesPrice, noPrice);
     if (!matchResult) {
-      console.log("        Could not create complete matched pair, skipping test");
+      console.log("      ï¿½ Could not create complete matched pair, skipping test");
       return;
     }
 
@@ -436,12 +436,11 @@ describe("process_match", () => {
         .signers([authority])
         .rpc();
 
-      // Should succeed without errors
     } catch (error) {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -452,7 +451,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -463,7 +462,7 @@ describe("process_match", () => {
     // Create complete matched pair with shares
     const matchResult = await createCompleteMatchedPair(4, quantity, yesPrice, noPrice);
     if (!matchResult) {
-      console.log("        Could not create complete matched pair, skipping test");
+      console.log("      ï¿½ Could not create complete matched pair, skipping test");
       return;
     }
 
@@ -511,7 +510,7 @@ describe("process_match", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -522,7 +521,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -533,7 +532,7 @@ describe("process_match", () => {
     // Create complete matched pair with shares
     const matchResult = await createCompleteMatchedPair(5, quantity, yesPrice, noPrice);
     if (!matchResult) {
-      console.log("        Could not create complete matched pair, skipping test");
+      console.log("      ï¿½ Could not create complete matched pair, skipping test");
       return;
     }
 
@@ -578,7 +577,6 @@ describe("process_match", () => {
         .signers([authority])
         .rpc();
 
-      // Verify payout pool calculation
       const eventAfter = await program.account.event.fetch(eventPda);
       const actualIncrease = eventAfter.payoutPool.toNumber() - initialPayoutPool;
       
@@ -588,7 +586,7 @@ describe("process_match", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -599,7 +597,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -610,7 +608,7 @@ describe("process_match", () => {
     // Create complete matched pair with shares
     const matchResult = await createCompleteMatchedPair(6, quantity, yesPrice, noPrice);
     if (!matchResult) {
-      console.log("        Could not create complete matched pair, skipping test");
+      console.log("      ï¿½ Could not create complete matched pair, skipping test");
       return;
     }
 
@@ -664,7 +662,7 @@ describe("process_match", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -675,7 +673,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -707,14 +705,14 @@ describe("process_match", () => {
         .signers([authority])
         .rpc();
       
-      console.log("        System pause test skipped - pause functionality not implemented");
+      console.log("      ï¿½ System pause test skipped - pause functionality not implemented");
     } catch (error) {
       if (error.toString().includes("SystemPaused")) {
         expect(error.toString()).to.include("SystemPaused");
       } else if (error.toString().includes("Unauthorized") || 
                  error.toString().includes("AccountNotInitialized") ||
                  error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -725,7 +723,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -772,7 +770,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -783,7 +781,7 @@ describe("process_match", () => {
     // Create complete matched pair with shares
     const matchResult = await createCompleteMatchedPair(7, quantity, yesPrice, noPrice);
     if (!matchResult) {
-      console.log("        Could not create complete matched pair, skipping test");
+      console.log("      ï¿½ Could not create complete matched pair, skipping test");
       return;
     }
 
@@ -840,7 +838,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -857,7 +855,7 @@ describe("process_match", () => {
       // Create complete matched pair with shares
       const matchResult = await createCompleteMatchedPair(8 + i, quantity, yesPrice, noPrice);
       if (!matchResult) {
-        console.log(`        Could not create complete matched pair ${i + 1}, skipping`);
+        console.log(`      ï¿½ Could not create complete matched pair ${i + 1}, skipping`);
         continue;
       }
 
@@ -910,7 +908,7 @@ describe("process_match", () => {
         if (error.toString().includes("Unauthorized") || 
             error.toString().includes("AccountNotInitialized") ||
             error.toString().includes("ConstraintSeeds")) {
-          console.log(`        Match processing ${i + 1} requires proper setup - constraint working correctly`);
+          console.log(`      ï¿½ Match processing ${i + 1} requires proper setup - constraint working correctly`);
         } else {
           throw error;
         }
@@ -924,7 +922,7 @@ describe("process_match", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -935,7 +933,7 @@ describe("process_match", () => {
     // Create complete matched pair with shares
     const matchResult = await createCompleteMatchedPair(10, quantity, yesPrice, noPrice);
     if (!matchResult) {
-      console.log("        Could not create complete matched pair, skipping test");
+      console.log("      ï¿½ Could not create complete matched pair, skipping test");
       return;
     }
 
@@ -989,7 +987,7 @@ describe("process_match", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }

@@ -35,23 +35,19 @@ pub fn handler(
     let event = &mut ctx.accounts.event;
     let current_time = Clock::get()?.unix_timestamp;
     
-    // Check if event has started
     require!(
         current_time >= event.event_start_time,
         ErrorCode::EventNotStarted
     );
     
-    // Check if primary market is not already closed
     require!(
         event.status != EventStatus::PrimaryClosed,
         ErrorCode::PrimaryAlreadyClosed
     );
     
-    // Update event status and timestamp
     event.status = EventStatus::PrimaryClosed;
     event.primary_market_closed_at = Some(current_time);
     
-    // Emit event
     emit!(PrimaryMarketClosed {
         event_id,
         timestamp: current_time,

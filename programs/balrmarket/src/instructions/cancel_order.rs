@@ -52,13 +52,11 @@ pub fn handler(
     let order = &mut ctx.accounts.order;
     let escrow_account = &ctx.accounts.escrow_account;
     
-    // Validate the order can be cancelled
     require!(order.status == OrderStatus::Pending, ErrorCode::OrderAlreadyFilled);
     require!(order.buyer == ctx.accounts.buyer.key(), ErrorCode::Unauthorized);
     
     let refund_amount = escrow_account.amount;
     
-    // Use secure CPI instead of direct lamport manipulation
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -70,12 +68,10 @@ pub fn handler(
         refund_amount,
     )?;
     
-    // Update order status
     order.status = OrderStatus::Cancelled;
     
     let current_time = Clock::get()?.unix_timestamp;
     
-    // Emit OrderCancelled event
     emit!(OrderCancelled {
         order_id,
         event_id,

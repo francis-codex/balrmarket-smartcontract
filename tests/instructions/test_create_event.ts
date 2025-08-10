@@ -18,13 +18,9 @@ describe("create_event", () => {
   const marketId = "TEST_MARKET_001";
   
   before(async () => {
-    // Create admin keypair
     admin = Keypair.generate();
-    
-    // Create non-admin keypair
     nonAdmin = Keypair.generate();
     
-    // Airdrop SOL to admin and non-admin
     const adminAirdropTx = await provider.connection.requestAirdrop(
       admin.publicKey,
       10 * LAMPORTS_PER_SOL
@@ -37,29 +33,25 @@ describe("create_event", () => {
     );
     await provider.connection.confirmTransaction(nonAdminAirdropTx);
     
-    // Derive global state PDA
     [globalStatePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
       program.programId
     );
     
-    // Derive market PDA
     [marketPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("market"), Buffer.from(marketId)],
       program.programId
     );
     
-    // Setup global state if needed
     try {
       const globalState = await program.account.globalState.fetch(globalStatePda);
       console.log("       Global state exists, using existing setup");
     } catch (error) {
-      // Create global state
       await program.methods
         .initializeGlobalState(
           admin.publicKey,
-          250, // 2.5% platform fee primary
-          300  // 3% platform fee secondary
+          250,
+          300
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -71,14 +63,12 @@ describe("create_event", () => {
       console.log("       Created new global state");
     }
     
-    // Setup market if needed
     try {
       const market = await program.account.market.fetch(marketPda);
       console.log("       Market exists, using existing setup");
     } catch (error) {
-      // Create market
       try {
-        const futureTimestamp = Math.floor(Date.now() / 1000) + 86400 + 3600; // 25 hours from now
+        const futureTimestamp = Math.floor(Date.now() / 1000) + 86400 + 3600;
         await program.methods
           .createMarket(
             marketId,
@@ -108,7 +98,7 @@ describe("create_event", () => {
   it("Successfully creates event with valid parameters", async () => {
     const eventId = "EVENT_001";
     const question = "Will Team A win the match?";
-    const maxShares = 100; // Must be even
+    const maxShares = 100;
     const optaOddsYes = 6000; // 60% probability in basis points
     const futureTimestamp = Math.floor(Date.now() / 1000) + 86400 + 7200; // 26 hours from now
     
@@ -774,7 +764,6 @@ describe("create_event", () => {
       const event = await program.account.event.fetch(eventPda);
       const orderBook = await program.account.orderBook.fetch(orderBookPda);
       
-      // Verify all event fields are properly initialized
       expect(typeof event.eventId).to.equal("string");
       expect(typeof event.marketId).to.equal("string");
       expect(typeof event.question).to.equal("string");
@@ -803,7 +792,6 @@ describe("create_event", () => {
       expect(event.totalPlatformFees).to.be.instanceOf(BN);
       expect(typeof event.bump).to.equal("number");
       
-      // Verify order book fields
       expect(typeof orderBook.eventId).to.equal("string");
       expect(orderBook.marketPhase).to.be.an("object");
       expect(orderBook.yesOrders).to.be.an("array");

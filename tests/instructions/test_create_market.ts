@@ -17,13 +17,9 @@ describe("create_market", () => {
   let globalStateBump: number;
   
   before(async () => {
-    // Create admin keypair
     admin = Keypair.generate();
-    
-    // Create non-admin keypair
     nonAdmin = Keypair.generate();
     
-    // Airdrop SOL to admin and non-admin
     const adminAirdropTx = await provider.connection.requestAirdrop(
       admin.publicKey,
       5 * anchor.web3.LAMPORTS_PER_SOL

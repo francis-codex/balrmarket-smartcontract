@@ -25,7 +25,7 @@ pub fn handler(
     platform_fee_primary: u16,
     platform_fee_secondary: u16,
 ) -> Result<()> {
-    // Validate platform fee bounds (max 5% = 500 basis points)
+    // Max 5% platform fee
     require!(
         platform_fee_primary <= 500,
         crate::error::ErrorCode::InvalidInput

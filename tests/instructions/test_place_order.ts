@@ -22,12 +22,10 @@ describe("place_order", () => {
   const eventId = "ORDER_TEST_EVENT";
   
   before(async () => {
-    // Create keypairs
     admin = Keypair.generate();
     buyer1 = Keypair.generate();
     buyer2 = Keypair.generate();
     
-    // Airdrop SOL
     const adminAirdrop = await provider.connection.requestAirdrop(
       admin.publicKey,
       15 * LAMPORTS_PER_SOL
@@ -46,7 +44,6 @@ describe("place_order", () => {
     );
     await provider.connection.confirmTransaction(buyer2Airdrop);
     
-    // Derive PDAs
     [globalStatePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
       program.programId

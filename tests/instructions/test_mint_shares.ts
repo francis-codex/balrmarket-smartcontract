@@ -121,7 +121,6 @@ describe("mint_shares", () => {
     );
 
     try {
-      // Create YES order
       await program.methods
         .placeOrder(
           new BN(yesOrderId),
@@ -142,7 +141,6 @@ describe("mint_shares", () => {
         .signers([yesBuyer])
         .rpc();
 
-      // Create NO order
       await program.methods
         .placeOrder(
           new BN(noOrderId),
@@ -163,7 +161,6 @@ describe("mint_shares", () => {
         .signers([noBuyer])
         .rpc();
 
-      // Get current match count to determine matched pair PDA
       const eventData = await program.account.event.fetch(eventPda);
       const currentMatches = eventData.totalMatches.toNumber();
       
@@ -172,7 +169,6 @@ describe("mint_shares", () => {
         program.programId
       );
 
-      // Match the orders
       await program.methods
         .matchOrders(
           eventId,
@@ -438,7 +434,6 @@ describe("mint_shares", () => {
     }
 
     // This test would require creating a matched pair with invalid quantity
-    // For now, we'll test the validation logic conceptually
     console.log("      ⚠ Quantity bounds test - would require specific matched pair setup");
   });
 
@@ -450,8 +445,6 @@ describe("mint_shares", () => {
       return;
     }
 
-    // This test would require creating a matched pair with same buyer (which should be prevented at match stage)
-    // The mint_shares instruction has a redundant check for this
     console.log("      ⚠ Self-trading test - prevented at order matching stage");
   });
 
@@ -764,7 +757,6 @@ describe("mint_shares", () => {
 
       const afterTimestamp = Math.floor(Date.now() / 1000);
       
-      // Verify all YES share token fields
       const yesShareToken = await program.account.shareToken.fetch(yesSharePda);
       expect(yesShareToken.eventId).to.equal(eventId);
       expect(yesShareToken.owner.toString()).to.equal(yesBuyer.publicKey.toString());
@@ -775,7 +767,6 @@ describe("mint_shares", () => {
       expect(yesShareToken.createdAt.toNumber()).to.be.lessThanOrEqual(afterTimestamp);
       expect(typeof yesShareToken.bump).to.equal("number");
       
-      // Verify all NO share token fields
       const noShareToken = await program.account.shareToken.fetch(noSharePda);
       expect(noShareToken.eventId).to.equal(eventId);
       expect(noShareToken.owner.toString()).to.equal(noBuyer.publicKey.toString());

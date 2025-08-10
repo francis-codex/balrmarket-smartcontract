@@ -21,11 +21,9 @@ describe("end_primary_market", () => {
   const eventId = "END_PRIMARY_EVENT_TEST";
   
   before(async () => {
-    // Create keypairs
     admin = Keypair.generate();
     nonAdmin = Keypair.generate();
     
-    // Airdrop SOL
     const accounts = [admin, nonAdmin];
     for (const account of accounts) {
       const airdrop = await provider.connection.requestAirdrop(
@@ -56,21 +54,21 @@ describe("end_primary_market", () => {
       await program.account.globalState.fetch(globalStatePda);
       console.log("       Global state exists");
     } catch (error) {
-      console.log("         Global state not initialized");
+      console.log("       ï¿½ Global state not initialized");
     }
     
     try {
       await program.account.market.fetch(marketPda);
-      console.log("         Market exists, using existing setup");
+      console.log("       ï¿½ Market exists, using existing setup");
     } catch (error) {
-      console.log("         Market not initialized");
+      console.log("       ï¿½ Market not initialized");
     }
     
     try {
       await program.account.event.fetch(eventPda);
-      console.log("         Event exists, using existing setup");
+      console.log("       ï¿½ Event exists, using existing setup");
     } catch (error) {
-      console.log("         Event not initialized");
+      console.log("       ï¿½ Event not initialized");
     }
   });
 
@@ -101,7 +99,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -111,7 +109,7 @@ describe("end_primary_market", () => {
       
       // Only proceed if event is in Active status
       if (JSON.stringify(eventBefore.status) !== JSON.stringify({ active: {} })) {
-        console.log("        Event not in Active status, skipping test");
+        console.log("      ï¿½ Event not in Active status, skipping test");
         return;
       }
       
@@ -134,7 +132,7 @@ describe("end_primary_market", () => {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -145,7 +143,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -165,7 +163,7 @@ describe("end_primary_market", () => {
         
         // Only proceed if event is in Active status
         if (JSON.stringify(eventBefore.status) !== JSON.stringify({ active: {} })) {
-          console.log("        Event not in Active status, skipping test");
+          console.log("      ï¿½ Event not in Active status, skipping test");
           return;
         }
         
@@ -192,7 +190,7 @@ describe("end_primary_market", () => {
             error.toString().includes("AccountNotInitialized") ||
             error.toString().includes("ConstraintSeeds") ||
             error.toString().includes("PrimaryAlreadyClosed")) {
-          console.log("        Test requires proper setup - constraint working correctly");
+          console.log("      ï¿½ Test requires proper setup - constraint working correctly");
         } else {
           throw error;
         }
@@ -206,7 +204,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -228,7 +226,7 @@ describe("end_primary_market", () => {
         
         expect.fail("Should have failed with PrimaryAlreadyClosed error");
       } else {
-        console.log("        Event in Active status - cannot test duplicate closure");
+        console.log("      ï¿½ Event in Active status - cannot test duplicate closure");
       }
     } catch (error) {
       expect(error.toString()).to.satisfy((err: string) => 
@@ -244,7 +242,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -273,7 +271,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -295,7 +293,7 @@ describe("end_primary_market", () => {
         
         expect.fail("Should have failed with EventNotStarted error");
       } else {
-        console.log("        Event has already started - cannot test pre-start condition");
+        console.log("      ï¿½ Event has already started - cannot test pre-start condition");
       }
     } catch (error) {
       expect(error.toString()).to.satisfy((err: string) => 
@@ -311,7 +309,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -326,14 +324,14 @@ describe("end_primary_market", () => {
         .signers([admin])
         .rpc();
       
-      console.log("        System pause test skipped - pause functionality not implemented");
+      console.log("      ï¿½ System pause test skipped - pause functionality not implemented");
     } catch (error) {
       if (error.toString().includes("SystemPaused")) {
         expect(error.toString()).to.include("SystemPaused");
       } else if (error.toString().includes("Unauthorized") || 
                  error.toString().includes("AccountNotInitialized") ||
                  error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -344,7 +342,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -374,7 +372,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -404,7 +402,7 @@ describe("end_primary_market", () => {
   it("Validates event PDA derivation correctly", async () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -440,7 +438,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -450,7 +448,7 @@ describe("end_primary_market", () => {
       
       // Only proceed if event is in Active status
       if (JSON.stringify(eventBefore.status) !== JSON.stringify({ active: {} })) {
-        console.log("        Event not in Active status, skipping test");
+        console.log("      ï¿½ Event not in Active status, skipping test");
         return;
       }
       
@@ -478,7 +476,7 @@ describe("end_primary_market", () => {
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds") ||
           error.toString().includes("PrimaryAlreadyClosed")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -488,7 +486,7 @@ describe("end_primary_market", () => {
   it("Validates event existence", async () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -525,7 +523,7 @@ describe("end_primary_market", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -570,13 +568,13 @@ describe("end_primary_market", () => {
           );
         }
       } else {
-        console.log("        Event already closed - cannot test multiple attempts");
+        console.log("      ï¿½ Event already closed - cannot test multiple attempts");
       }
     } catch (error) {
       if (error.toString().includes("Unauthorized") || 
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }

@@ -69,16 +69,13 @@ pub fn handler(
     let matched_pair = &ctx.accounts.matched_pair;
     let _event = &ctx.accounts.event;
     
-    // Enhanced validation for share minting
     require!(matched_pair.event_id == event_id, ErrorCode::InvalidInput);
     
-    // Validate share quantity bounds
     require!(
         matched_pair.quantity > 0 && matched_pair.quantity <= 500,
         ErrorCode::InvalidOrderQuantity
     );
     
-    // Ensure buyers are different (prevent self-trading)
     require!(
         matched_pair.yes_buyer != matched_pair.no_buyer,
         ErrorCode::CannotTradeWithSelf
@@ -86,7 +83,6 @@ pub fn handler(
     
     let current_time = Clock::get()?.unix_timestamp;
     
-    // Initialize YES share token
     let yes_share_token = &mut ctx.accounts.yes_share_token;
     yes_share_token.event_id = event_id.clone();
     yes_share_token.owner = matched_pair.yes_buyer;
@@ -96,7 +92,6 @@ pub fn handler(
     yes_share_token.created_at = current_time;
     yes_share_token.bump = ctx.bumps.yes_share_token;
     
-    // Initialize NO share token
     let no_share_token = &mut ctx.accounts.no_share_token;
     no_share_token.event_id = event_id.clone();
     no_share_token.owner = matched_pair.no_buyer;
@@ -106,7 +101,6 @@ pub fn handler(
     no_share_token.created_at = current_time;
     no_share_token.bump = ctx.bumps.no_share_token;
     
-    // Emit ShareMinted event
     emit!(ShareMinted {
         event_id,
         yes_buyer: matched_pair.yes_buyer,

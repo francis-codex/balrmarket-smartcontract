@@ -63,18 +63,17 @@ pub fn handler(
     quantity: u64,
     unit_price: u64,
 ) -> Result<()> {
-    // Enhanced input validation
     require!(quantity > 0, ErrorCode::InvalidOrderQuantity);
     require!(unit_price > 0, ErrorCode::InvalidOrderPrice);
     require!(!event_id.is_empty(), ErrorCode::InvalidInput);
     
-    // Validate unit price bounds (must be < 1 SOL)
+    // Max 1 SOL per share
     require!(
         unit_price < 1_000_000_000, // 1 SOL in lamports
         ErrorCode::InvalidOrderPrice
     );
     
-    // Validate maximum order quantity (max 500 per order)
+    // Max 500 shares per order
     require!(
         quantity <= 500,
         ErrorCode::InvalidOrderQuantity
@@ -83,7 +82,6 @@ pub fn handler(
     let event = &ctx.accounts.event;
     let global_state = &ctx.accounts.global_state;
     
-    // Validate order quantity doesn't exceed remaining shares
     let remaining_shares = match order_type {
         OrderType::Yes => event.max_shares_yes - event.minted_shares_yes,
         OrderType::No => event.max_shares_no - event.minted_shares_no,
@@ -91,7 +89,6 @@ pub fn handler(
     
     require!(quantity <= remaining_shares, ErrorCode::MaxSharesExceeded);
     
-    // Calculate total amount and platform fee (2%)
     let total_amount = quantity
         .checked_mul(unit_price)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
@@ -106,7 +103,6 @@ pub fn handler(
         .checked_add(platform_fee)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Transfer SOL from buyer to escrow account
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -118,7 +114,6 @@ pub fn handler(
         total_amount,
     )?;
     
-    // Transfer platform fee to admin wallet
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -132,7 +127,6 @@ pub fn handler(
     
     let current_time = Clock::get()?.unix_timestamp;
     
-    // Initialize order account
     let order = &mut ctx.accounts.order;
     order.order_id = order_id;
     order.event_id = event_id.clone();
@@ -145,20 +139,17 @@ pub fn handler(
     order.created_at = current_time;
     order.bump = ctx.bumps.order;
     
-    // Initialize escrow account
     let escrow_account = &mut ctx.accounts.escrow_account;
     escrow_account.order_id = order_id;
     escrow_account.event_id = event_id.clone();
     escrow_account.amount = total_amount;
     escrow_account.bump = ctx.bumps.escrow_account;
     
-    // Accumulate platform fee in event
     let event = &mut ctx.accounts.event;
     event.total_platform_fees = event.total_platform_fees
         .checked_add(platform_fee)
         .ok_or(ErrorCode::ArithmeticOverflow)?;
     
-    // Emit OrderPlaced event
     emit!(OrderPlaced {
         order_id,
         event_id,

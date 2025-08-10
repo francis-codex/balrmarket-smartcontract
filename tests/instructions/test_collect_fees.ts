@@ -22,12 +22,10 @@ describe("collect_fees", () => {
   const eventId = "COLLECT_FEES_EVENT";
   
   before(async () => {
-    // Create keypairs
     admin = Keypair.generate();
     nonAdmin = Keypair.generate();
     buyer = Keypair.generate();
     
-    // Airdrop SOL
     const accounts = [admin, nonAdmin, buyer];
     for (const account of accounts) {
       const airdrop = await provider.connection.requestAirdrop(
@@ -37,7 +35,6 @@ describe("collect_fees", () => {
       await provider.connection.confirmTransaction(airdrop);
     }
     
-    // Derive PDAs
     [globalStatePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
       program.programId
@@ -53,30 +50,28 @@ describe("collect_fees", () => {
       program.programId
     );
     
-    // Check account status
     try {
       await program.account.globalState.fetch(globalStatePda);
       console.log("       Global state exists");
     } catch (error) {
-      console.log("         Global state not initialized");
+      console.log("       ï¿½ Global state not initialized");
     }
     
     try {
       await program.account.market.fetch(marketPda);
-      console.log("         Market exists, using existing setup");
+      console.log("       ï¿½ Market exists, using existing setup");
     } catch (error) {
-      console.log("         Market not initialized");
+      console.log("       ï¿½ Market not initialized");
     }
     
     try {
       await program.account.event.fetch(eventPda);
-      console.log("         Event exists, using existing setup");
+      console.log("       ï¿½ Event exists, using existing setup");
     } catch (error) {
-      console.log("         Event not initialized");
+      console.log("       ï¿½ Event not initialized");
     }
   });
 
-  // Helper function to check account existence
   const checkAccountExists = async (accountPda: PublicKey, accountType: string): Promise<boolean> => {
     try {
       if (accountType === "event") {
@@ -92,7 +87,6 @@ describe("collect_fees", () => {
     }
   };
 
-  // Helper function to check if event is in PrimaryClosed status
   const checkEventPrimaryClosed = async (): Promise<boolean> => {
     try {
       const eventData = await program.account.event.fetch(eventPda);
@@ -102,7 +96,6 @@ describe("collect_fees", () => {
     }
   };
 
-  // Helper function to create test order that generates platform fees
   const createOrderWithFees = async (orderId: number, orderType: any, quantity: number, unitPrice: number) => {
     const [orderPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("order"), Buffer.from(eventId), new BN(orderId).toArrayLike(Buffer, "le", 8)],
@@ -141,7 +134,6 @@ describe("collect_fees", () => {
     }
   };
 
-  // Helper function to check if event has platform fees
   const checkEventHasFees = async (): Promise<boolean> => {
     try {
       const eventData = await program.account.event.fetch(eventPda);
@@ -155,26 +147,24 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
     // Check if event has platform fees to collect
     if (!(await checkEventHasFees())) {
-      console.log("        Event has no platform fees to collect, skipping test");
+      console.log("      ï¿½ Event has no platform fees to collect, skipping test");
       return;
     }
 
     try {
-      // Get admin wallet balance before
       const adminBalanceBefore = await provider.connection.getBalance(admin.publicKey);
       
-      // Get event fees before collection
       const eventBefore = await program.account.event.fetch(eventPda);
       const feesToCollect = eventBefore.totalPlatformFees.toNumber();
       
@@ -190,15 +180,12 @@ describe("collect_fees", () => {
         .signers([admin])
         .rpc();
 
-      // Verify fees were transferred to admin
       const adminBalanceAfter = await provider.connection.getBalance(admin.publicKey);
       expect(adminBalanceAfter).to.be.greaterThan(adminBalanceBefore);
       
-      // Account for transaction fees
       const balanceIncrease = adminBalanceAfter - adminBalanceBefore;
-      expect(balanceIncrease).to.be.closeTo(feesToCollect, 10000); // Allow 0.00001 SOL difference for fees
+      expect(balanceIncrease).to.be.closeTo(feesToCollect, 10000);
       
-      // Verify event fees were reset to 0
       const eventAfter = await program.account.event.fetch(eventPda);
       expect(eventAfter.totalPlatformFees.toNumber()).to.equal(0);
     } catch (error) {
@@ -207,7 +194,7 @@ describe("collect_fees", () => {
           error.toString().includes("ConstraintSeeds") ||
           error.toString().includes("PrimaryNotClosed") ||
           error.toString().includes("NoFeesToCollect")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -218,23 +205,23 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
     // Create some orders to generate platform fees if none exist
     if (!(await checkEventHasFees())) {
-      console.log("        Creating test order to generate platform fees");
+      console.log("      ï¿½ Creating test order to generate platform fees");
       await createOrderWithFees(600, { yes: {} }, 10, 500_000_000);
     }
 
     if (!(await checkEventHasFees())) {
-      console.log("        Could not generate platform fees, skipping test");
+      console.log("      ï¿½ Could not generate platform fees, skipping test");
       return;
     }
 
@@ -281,7 +268,7 @@ describe("collect_fees", () => {
             error.toString().includes("ConstraintSeeds") ||
             error.toString().includes("PrimaryNotClosed") ||
             error.toString().includes("NoFeesToCollect")) {
-          console.log("        Test requires proper setup - constraint working correctly");
+          console.log("      ï¿½ Test requires proper setup - constraint working correctly");
         } else {
           throw error;
         }
@@ -295,12 +282,12 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
@@ -322,7 +309,7 @@ describe("collect_fees", () => {
         
         expect.fail("Should have failed with NoFeesToCollect error");
       } else {
-        console.log("        Event has fees available - cannot test no fees condition");
+        console.log("      ï¿½ Event has fees available - cannot test no fees condition");
       }
     } catch (error) {
       expect(error.toString()).to.satisfy((err: string) => 
@@ -338,7 +325,7 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -360,7 +347,7 @@ describe("collect_fees", () => {
         
         expect.fail("Should have failed with PrimaryNotClosed error");
       } else {
-        console.log("        Event already in PrimaryClosed status - cannot test active market constraint");
+        console.log("      ï¿½ Event already in PrimaryClosed status - cannot test active market constraint");
       }
     } catch (error) {
       expect(error.toString()).to.satisfy((err: string) => 
@@ -376,12 +363,12 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
@@ -412,7 +399,7 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -429,14 +416,14 @@ describe("collect_fees", () => {
         .signers([admin])
         .rpc();
       
-      console.log("        System pause test skipped - pause functionality not implemented");
+      console.log("      ï¿½ System pause test skipped - pause functionality not implemented");
     } catch (error) {
       if (error.toString().includes("SystemPaused")) {
         expect(error.toString()).to.include("SystemPaused");
       } else if (error.toString().includes("Unauthorized") || 
                  error.toString().includes("AccountNotInitialized") ||
                  error.toString().includes("ConstraintSeeds")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -447,12 +434,12 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
@@ -484,12 +471,12 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
@@ -522,12 +509,12 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
@@ -558,7 +545,7 @@ describe("collect_fees", () => {
   it("Validates event PDA derivation correctly", async () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -595,7 +582,7 @@ describe("collect_fees", () => {
   it("Validates event existence", async () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
@@ -634,22 +621,22 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
     // Create some orders to generate platform fees
-    console.log("        Creating test orders to generate platform fees");
+    console.log("      ï¿½ Creating test orders to generate platform fees");
     await createOrderWithFees(601, { yes: {} }, 5, 400_000_000);
     await createOrderWithFees(602, { no: {} }, 3, 600_000_000);
 
     if (!(await checkEventHasFees())) {
-      console.log("        Could not generate platform fees, skipping test");
+      console.log("      ï¿½ Could not generate platform fees, skipping test");
       return;
     }
 
@@ -679,7 +666,7 @@ describe("collect_fees", () => {
           error.toString().includes("AccountNotInitialized") ||
           error.toString().includes("ConstraintSeeds") ||
           error.toString().includes("PrimaryNotClosed")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
@@ -690,12 +677,12 @@ describe("collect_fees", () => {
     if (!(await checkAccountExists(globalStatePda, "global")) ||
         !(await checkAccountExists(marketPda, "market")) ||
         !(await checkAccountExists(eventPda, "event"))) {
-      console.log("        Required accounts not initialized, skipping test");
+      console.log("      ï¿½ Required accounts not initialized, skipping test");
       return;
     }
 
     if (!(await checkEventPrimaryClosed())) {
-      console.log("        Event not in PrimaryClosed status, skipping test");
+      console.log("      ï¿½ Event not in PrimaryClosed status, skipping test");
       return;
     }
 
@@ -750,7 +737,7 @@ describe("collect_fees", () => {
           error.toString().includes("ConstraintSeeds") ||
           error.toString().includes("PrimaryNotClosed") ||
           error.toString().includes("NoFeesToCollect")) {
-        console.log("        Test requires proper setup - constraint working correctly");
+        console.log("      ï¿½ Test requires proper setup - constraint working correctly");
       } else {
         throw error;
       }
