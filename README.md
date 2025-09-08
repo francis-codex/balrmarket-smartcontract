@@ -1,4 +1,4 @@
-# BALR Market - Frontend Integration Guide
+# BALR Market
 
 ## Table of Contents
 - [Executive Summary](#executive-summary)
