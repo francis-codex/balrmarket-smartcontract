@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
-use crate::state::{GlobalState, Market, Event, OrderBook, EventStatus, MarketStatus, MarketPhase};
+use crate::state::{GlobalState, Market, Event, OrderBook, EventStatus, MarketStatus, MarketPhase, AdminHierarchy};
 use crate::events::EventCreated;
 use crate::error::ErrorCode;
 use crate::utils::normalize_opta_odds;
@@ -11,10 +11,16 @@ pub struct CreateEvent<'info> {
     #[account(
         mut,
         seeds = [b"global_state"],
-        bump,
-        constraint = global_state.admin == admin.key() @ ErrorCode::Unauthorized
+        bump
     )]
     pub global_state: Account<'info, GlobalState>,
+    
+    #[account(
+        seeds = [b"admin_hierarchy"],
+        bump,
+        constraint = admin_hierarchy.is_any_admin(&admin.key()) @ ErrorCode::Unauthorized
+    )]
+    pub admin_hierarchy: Account<'info, AdminHierarchy>,
     
     #[account(
         mut,
@@ -68,7 +74,9 @@ pub fn handler(
     
     let global_state = &ctx.accounts.global_state;
     require!(!global_state.is_paused, ErrorCode::SystemPaused);
-    require!(ctx.accounts.admin.key() == global_state.admin, ErrorCode::Unauthorized);
+    
+    // Use hierarchical admin validation
+    crate::utils::validate_any_admin_hierarchical(&ctx.accounts.admin_hierarchy, &ctx.accounts.admin.key())?;
     
     let market = &mut ctx.accounts.market;
     require!(market.admin == ctx.accounts.admin.key(), ErrorCode::Unauthorized);

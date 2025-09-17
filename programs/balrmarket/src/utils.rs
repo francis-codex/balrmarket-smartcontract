@@ -134,6 +134,97 @@ pub fn validate_system_active(is_paused: bool) -> Result<()> {
     Ok(())
 }
 
+/// NEW HIERARCHICAL ADMIN UTILITY FUNCTIONS
+
+/// Validate that the signer is a super admin in the new hierarchical system
+pub fn validate_super_admin_hierarchical(
+    admin_hierarchy: &crate::state::AdminHierarchy,
+    signer: &Pubkey,
+) -> Result<()> {
+    require!(
+        admin_hierarchy.is_super_admin(signer),
+        ErrorCode::SuperAdminRequired
+    );
+    Ok(())
+}
+
+/// Validate that the signer is any admin (super or regular) in the new hierarchical system
+pub fn validate_any_admin_hierarchical(
+    admin_hierarchy: &crate::state::AdminHierarchy,
+    signer: &Pubkey,
+) -> Result<()> {
+    require!(
+        admin_hierarchy.is_any_admin(signer),
+        ErrorCode::Unauthorized
+    );
+    Ok(())
+}
+
+/// Validate that the signer is at least a regular admin in the new hierarchical system
+pub fn validate_regular_admin_hierarchical(
+    admin_hierarchy: &crate::state::AdminHierarchy,
+    signer: &Pubkey,
+) -> Result<()> {
+    require!(
+        admin_hierarchy.is_regular_admin(signer) || admin_hierarchy.is_super_admin(signer),
+        ErrorCode::Unauthorized
+    );
+    Ok(())
+}
+
+/// Check if pubkey is a super admin (no validation, just returns bool)
+pub fn is_super_admin_hierarchical(
+    admin_hierarchy: &crate::state::AdminHierarchy,
+    pubkey: &Pubkey,
+) -> bool {
+    admin_hierarchy.is_super_admin(pubkey)
+}
+
+/// Check if pubkey is a regular admin (no validation, just returns bool)
+pub fn is_regular_admin_hierarchical(
+    admin_hierarchy: &crate::state::AdminHierarchy,
+    pubkey: &Pubkey,
+) -> bool {
+    admin_hierarchy.is_regular_admin(pubkey)
+}
+
+/// Check if pubkey is any admin (no validation, just returns bool)
+pub fn is_any_admin_hierarchical(
+    admin_hierarchy: &crate::state::AdminHierarchy,
+    pubkey: &Pubkey,
+) -> bool {
+    admin_hierarchy.is_any_admin(pubkey)
+}
+
+/// Get super admin count from hierarchical system
+pub fn get_super_admin_count_hierarchical(admin_hierarchy: &crate::state::AdminHierarchy) -> u8 {
+    admin_hierarchy.get_super_admin_count()
+}
+
+/// Get regular admin count from hierarchical system
+pub fn get_regular_admin_count_hierarchical(admin_hierarchy: &crate::state::AdminHierarchy) -> u16 {
+    admin_hierarchy.get_regular_admin_count()
+}
+
+/// Get admin lists (for read-only access) from hierarchical system
+pub fn get_admin_lists_hierarchical(admin_hierarchy: &crate::state::AdminHierarchy) -> (Vec<Pubkey>, Vec<Pubkey>) {
+    (
+        admin_hierarchy.super_admins.clone(),
+        admin_hierarchy.regular_admins.clone(),
+    )
+}
+
+/// Get admin role for a given pubkey in the hierarchical system
+pub fn get_admin_role_hierarchical(admin_hierarchy: &crate::state::AdminHierarchy, pubkey: &Pubkey) -> Option<crate::state::AdminRole> {
+    if admin_hierarchy.is_super_admin(pubkey) {
+        Some(crate::state::AdminRole::SuperAdmin)
+    } else if admin_hierarchy.is_regular_admin(pubkey) {
+        Some(crate::state::AdminRole::RegularAdmin)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -15,6 +15,8 @@ describe("create_market", () => {
   let nonAdmin: Keypair;
   let globalStatePda: PublicKey;
   let globalStateBump: number;
+  let adminHierarchyPda: PublicKey;
+  let adminHierarchyBump: number;
   
   before(async () => {
     admin = Keypair.generate();
@@ -38,6 +40,30 @@ describe("create_market", () => {
       program.programId
     );
     
+    // Derive admin hierarchy PDA
+    [adminHierarchyPda, adminHierarchyBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("admin_hierarchy")],
+      program.programId
+    );
+    
+    // Initialize admin hierarchy first (required for new system)
+    try {
+      await program.account.adminHierarchy.fetch(adminHierarchyPda);
+      console.log("      ✓ Admin hierarchy already exists");
+    } catch (error) {
+      // Admin hierarchy doesn't exist, create it
+      await program.methods
+        .initializeAdminHierarchy()
+        .accountsPartial({
+          adminHierarchy: adminHierarchyPda,
+          initialSuperAdmin: admin.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([admin])
+        .rpc();
+      console.log("      ✓ Created admin hierarchy with test admin as super admin");
+    }
+
     // Check if global state exists and get the actual admin
     try {
       const globalState = await program.account.globalState.fetch(globalStatePda);
@@ -94,6 +120,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: actualAdmin.publicKey,
           systemProgram: SystemProgram.programId,
@@ -202,6 +229,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: admin.publicKey,
           systemProgram: SystemProgram.programId,
@@ -239,6 +267,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: admin.publicKey,
           systemProgram: SystemProgram.programId,
@@ -275,6 +304,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: admin.publicKey,
           systemProgram: SystemProgram.programId,
@@ -311,6 +341,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: admin.publicKey,
           systemProgram: SystemProgram.programId,
@@ -347,6 +378,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: nonAdmin.publicKey, // Non-admin trying to create market
           systemProgram: SystemProgram.programId,
@@ -382,6 +414,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: admin.publicKey,
           systemProgram: SystemProgram.programId,
@@ -441,6 +474,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: admin.publicKey,
           systemProgram: SystemProgram.programId,
@@ -490,6 +524,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: admin.publicKey,
           systemProgram: SystemProgram.programId,
@@ -531,6 +566,7 @@ describe("create_market", () => {
         )
         .accountsPartial({
           globalState: globalStatePda,
+          adminHierarchy: adminHierarchyPda,
           market: marketPda,
           admin: admin.publicKey,
           systemProgram: SystemProgram.programId,

@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{GlobalState, Market, MarketStatus};
+use crate::state::{GlobalState, Market, MarketStatus, AdminHierarchy};
 use crate::events::MarketCreated;
 use crate::error::ErrorCode;
 
@@ -9,10 +9,16 @@ pub struct CreateMarket<'info> {
     #[account(
         mut,
         seeds = [b"global_state"],
-        bump,
-        constraint = global_state.admin == admin.key() @ ErrorCode::Unauthorized
+        bump
     )]
     pub global_state: Account<'info, GlobalState>,
+    
+    #[account(
+        seeds = [b"admin_hierarchy"],
+        bump,
+        constraint = admin_hierarchy.is_any_admin(&admin.key()) @ ErrorCode::Unauthorized
+    )]
+    pub admin_hierarchy: Account<'info, AdminHierarchy>,
     
     #[account(
         init,
@@ -47,7 +53,9 @@ pub fn handler(
     
     let global_state = &ctx.accounts.global_state;
     require!(!global_state.is_paused, ErrorCode::SystemPaused);
-    require!(ctx.accounts.admin.key() == global_state.admin, ErrorCode::Unauthorized);
+    
+    // Use hierarchical admin validation
+    crate::utils::validate_any_admin_hierarchical(&ctx.accounts.admin_hierarchy, &ctx.accounts.admin.key())?;
     
     let market = &mut ctx.accounts.market;
     market.market_id = market_id.clone();
