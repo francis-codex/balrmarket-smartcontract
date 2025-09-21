@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-use crate::state::{GlobalState, Event, EventStatus};
+use crate::state::{GlobalState, Event, EventStatus, AdminHierarchy};
 use crate::events::PlatformFeesCollected;
 use crate::error::ErrorCode;
 
@@ -15,6 +15,13 @@ pub struct CollectFees<'info> {
     pub global_state: Account<'info, GlobalState>,
     
     #[account(
+        seeds = [b"admin_hierarchy"],
+        bump,
+        constraint = admin_hierarchy.is_any_admin(&admin.key()) @ ErrorCode::Unauthorized
+    )]
+    pub admin_hierarchy: Account<'info, AdminHierarchy>,
+    
+    #[account(
         mut,
         seeds = [b"event", event.market_id.as_bytes(), event_id.as_bytes()],
         bump,
@@ -23,16 +30,11 @@ pub struct CollectFees<'info> {
     )]
     pub event: Account<'info, Event>,
     
-    #[account(
-        constraint = admin.key() == global_state.admin @ ErrorCode::Unauthorized
-    )]
+    #[account()]
     pub admin: Signer<'info>,
     
     /// Admin wallet to receive platform fees
-    #[account(
-        mut,
-        constraint = admin_wallet.key() == global_state.admin @ ErrorCode::Unauthorized
-    )]
+    #[account(mut)]
     pub admin_wallet: SystemAccount<'info>,
     
     pub system_program: Program<'info, System>,

@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{GlobalState, Event, EventStatus};
+use crate::state::{GlobalState, Event, EventStatus, AdminHierarchy};
 use crate::events::PrimaryMarketClosed;
 use crate::error::ErrorCode;
 
@@ -14,6 +14,13 @@ pub struct EndPrimaryMarket<'info> {
     pub global_state: Account<'info, GlobalState>,
     
     #[account(
+        seeds = [b"admin_hierarchy"],
+        bump,
+        constraint = admin_hierarchy.is_any_admin(&admin.key()) @ ErrorCode::Unauthorized
+    )]
+    pub admin_hierarchy: Account<'info, AdminHierarchy>,
+    
+    #[account(
         mut,
         seeds = [b"event", event.market_id.as_bytes(), event_id.as_bytes()],
         bump,
@@ -22,9 +29,7 @@ pub struct EndPrimaryMarket<'info> {
     )]
     pub event: Account<'info, Event>,
     
-    #[account(
-        constraint = admin.key() == global_state.admin @ ErrorCode::Unauthorized
-    )]
+    #[account()]
     pub admin: Signer<'info>,
 }
 

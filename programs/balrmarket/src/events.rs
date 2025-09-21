@@ -173,3 +173,52 @@ pub struct PlatformFeesCollected {
     pub amount: u64,
     pub timestamp: i64,
 }
+
+// New Admin Hierarchy Events
+#[event]
+pub struct AdminHierarchyInitialized {
+    pub initial_super_admin: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SuperAdminAdded {
+    pub new_super_admin: Pubkey,
+    pub added_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SuperAdminRemoved {
+    pub removed_admin: Pubkey,
+    pub removed_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct RegularAdminAdded {
+    pub new_regular_admin: Pubkey,
+    pub added_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct RegularAdminRemoved {
+    pub removed_admin: Pubkey,
+    pub removed_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct AdminPromoted {
+    pub promoted_admin: Pubkey,
+    pub promoted_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SuperAdminDemoted {
+    pub demoted_admin: Pubkey,
+    pub demoted_by: Pubkey,
+    pub timestamp: i64,
+}

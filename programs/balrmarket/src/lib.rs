@@ -179,4 +179,68 @@ pub mod balrmarket {
             event_id,
         )
     }
+
+    // NEW ADMIN HIERARCHY FUNCTIONS
+
+    /// Initialize the hierarchical admin system
+    pub fn initialize_admin_hierarchy(
+        ctx: Context<InitializeAdminHierarchy>,
+    ) -> Result<()> {
+        instructions::initialize_admin_hierarchy::handler(ctx)
+    }
+
+    /// Add a new super admin (super admin only)
+    pub fn add_super_admin(
+        ctx: Context<AddSuperAdmin>,
+        new_super_admin: Pubkey,
+    ) -> Result<()> {
+        instructions::add_super_admin::handler(ctx, new_super_admin)
+    }
+
+    /// Remove a super admin (super admin only)
+    pub fn remove_super_admin(
+        ctx: Context<RemoveSuperAdmin>,
+        admin_to_remove: Pubkey,
+    ) -> Result<()> {
+        instructions::remove_super_admin::handler(ctx, admin_to_remove)
+    }
+
+    /// Add a new regular admin (super admin only)
+    pub fn add_regular_admin(
+        ctx: Context<AddRegularAdmin>,
+        new_regular_admin: Pubkey,
+    ) -> Result<()> {
+        instructions::add_regular_admin::handler(ctx, new_regular_admin)
+    }
+
+    /// Remove a regular admin (super admin only)
+    pub fn remove_regular_admin(
+        ctx: Context<RemoveRegularAdmin>,
+        admin_to_remove: Pubkey,
+    ) -> Result<()> {
+        instructions::remove_regular_admin::handler(ctx, admin_to_remove)
+    }
+
+    /// Promote a regular admin to super admin (super admin only)
+    pub fn promote_admin(
+        ctx: Context<PromoteAdmin>,
+        admin_to_promote: Pubkey,
+    ) -> Result<()> {
+        instructions::promote_admin::handler(ctx, admin_to_promote)
+    }
+
+    /// Demote a super admin to regular admin (super admin only)
+    pub fn demote_super_admin(
+        ctx: Context<DemoteSuperAdmin>,
+        admin_to_demote: Pubkey,
+    ) -> Result<()> {
+        instructions::demote_super_admin::handler(ctx, admin_to_demote)
+    }
+
+    /// Get admin information (view function)
+    pub fn get_admin_info(
+        ctx: Context<GetAdminInfo>,
+    ) -> Result<AdminInfoResponse> {
+        instructions::get_admin_info::handler(ctx)
+    }
 }

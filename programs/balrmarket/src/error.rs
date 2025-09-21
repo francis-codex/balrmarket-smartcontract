@@ -142,4 +142,26 @@ pub enum ErrorCode {
     
     #[msg("Share minting failed - duplicate attempt")]
     ShareAlreadyMinted = 6046,
+    
+    // Admin Hierarchy Error Codes (6100-6199)
+    #[msg("Maximum super admin limit exceeded (max 3)")]
+    MaxSuperAdminsExceeded = 6100,
+    
+    #[msg("Cannot remove the last super admin")]
+    CannotRemoveLastSuperAdmin = 6101,
+    
+    #[msg("Admin already exists in the system")]
+    AdminAlreadyExists = 6102,
+    
+    #[msg("Admin not found")]
+    AdminNotFound = 6103,
+    
+    #[msg("Insufficient admin privileges - super admin required")]
+    InsufficientAdminPrivileges = 6104,
+    
+    #[msg("Regular admin cannot perform this operation")]
+    RegularAdminUnauthorized = 6105,
+    
+    #[msg("Super admin required for admin management operations")]
+    SuperAdminRequired = 6106,
 }
