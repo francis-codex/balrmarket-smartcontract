@@ -6,7 +6,7 @@ use crate::error::ErrorCode;
 use crate::utils::normalize_opta_odds;
 
 #[derive(Accounts)]
-#[instruction(event_id: String, market_id: String)]
+#[instruction(event_id: String, question: String, max_shares: u32, opta_odds_yes: u16, match_timestamp: i64)]
 pub struct CreateEvent<'info> {
     #[account(
         mut,
@@ -24,17 +24,17 @@ pub struct CreateEvent<'info> {
     
     #[account(
         mut,
-        seeds = [b"market", market_id.as_bytes()],
+        seeds = [b"market", market.market_id.as_bytes()],
         bump,
         constraint = market.admin == admin.key() @ ErrorCode::Unauthorized
     )]
     pub market: Account<'info, Market>,
-    
+
     #[account(
         init,
         payer = admin,
         space = 8 + Event::INIT_SPACE,
-        seeds = [b"event", market_id.as_bytes(), event_id.as_bytes()],
+        seeds = [b"event", market.market_id.as_bytes(), event_id.as_bytes()],
         bump
     )]
     pub event: Account<'info, Event>,

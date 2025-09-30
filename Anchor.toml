@@ -15,7 +15,7 @@ balrmarket = "CYCLSN9sVJGKo4xy3daXvH3KFD66wPgDvAuFVRhc6RDq"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
