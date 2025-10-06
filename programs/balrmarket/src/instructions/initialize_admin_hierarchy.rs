@@ -23,16 +23,15 @@ pub fn handler(
     ctx: Context<InitializeAdminHierarchy>,
 ) -> Result<()> {
     let admin_hierarchy = &mut ctx.accounts.admin_hierarchy;
-    
+
     // Initialize with the deployer as the first super admin
     admin_hierarchy.super_admins = vec![ctx.accounts.initial_super_admin.key()];
-    admin_hierarchy.regular_admins = Vec::new();
     admin_hierarchy.bump = ctx.bumps.admin_hierarchy;
-    
+
     emit!(AdminHierarchyInitialized {
         initial_super_admin: ctx.accounts.initial_super_admin.key(),
         timestamp: Clock::get()?.unix_timestamp,
     });
-    
+
     Ok(())
 }

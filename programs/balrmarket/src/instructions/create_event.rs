@@ -18,7 +18,7 @@ pub struct CreateEvent<'info> {
     #[account(
         seeds = [b"admin_hierarchy"],
         bump,
-        constraint = admin_hierarchy.is_any_admin(&admin.key()) @ ErrorCode::Unauthorized
+        constraint = admin_hierarchy.is_super_admin(&admin.key()) @ ErrorCode::SuperAdminRequired
     )]
     pub admin_hierarchy: Account<'info, AdminHierarchy>,
     
@@ -76,8 +76,8 @@ pub fn handler(
     let global_state = &ctx.accounts.global_state;
     require!(!global_state.is_paused, ErrorCode::SystemPaused);
     
-    // Use hierarchical admin validation
-    crate::utils::validate_any_admin_hierarchical(&ctx.accounts.admin_hierarchy, &ctx.accounts.admin.key())?;
+    // Validate super admin
+    crate::utils::validate_super_admin(&ctx.accounts.admin_hierarchy, &ctx.accounts.admin.key())?;
 
     let market = &mut ctx.accounts.market;
     // Removed constraint: Any admin can create events for any market
