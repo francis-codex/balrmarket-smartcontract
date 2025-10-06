@@ -61,32 +61,33 @@ pub fn handler(
     event_id: String,
     order_type: OrderType,
     quantity: u64,
-    unit_price: u64,
 ) -> Result<()> {
     require!(quantity > 0, ErrorCode::InvalidOrderQuantity);
-    require!(unit_price > 0, ErrorCode::InvalidOrderPrice);
     require!(!event_id.is_empty(), ErrorCode::InvalidInput);
-    
-    // Max 1 SOL per share
-    require!(
-        unit_price < 1_000_000_000, // 1 SOL in lamports
-        ErrorCode::InvalidOrderPrice
-    );
-    
+
     // Max 500 shares per order
     require!(
         quantity <= 500,
         ErrorCode::InvalidOrderQuantity
     );
-    
+
     let event = &ctx.accounts.event;
     let global_state = &ctx.accounts.global_state;
-    
+
+    // Use event's fixed price based on order type (primary market has fixed prices)
+    let unit_price = match order_type {
+        OrderType::Yes => event.yes_share_price,
+        OrderType::No => event.no_share_price,
+    };
+
+    // Validate price is set (should always be true for properly created events)
+    require!(unit_price > 0, ErrorCode::InvalidOrderPrice);
+
     let remaining_shares = match order_type {
         OrderType::Yes => event.max_shares_yes - event.minted_shares_yes,
         OrderType::No => event.max_shares_no - event.minted_shares_no,
     } as u64;
-    
+
     require!(quantity <= remaining_shares, ErrorCode::MaxSharesExceeded);
     
     let total_amount = quantity

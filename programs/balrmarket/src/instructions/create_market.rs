@@ -47,9 +47,9 @@ pub fn handler(
     require!(team_b.len() <= 100, ErrorCode::TeamNameTooLong);
     require!(!team_a.is_empty() && !team_b.is_empty(), ErrorCode::InvalidInput);
     
-    // Match must be at least 24 hours in the future
+    // Match must be at least 1 hour in the future (reduced from 24 hours for flexibility)
     let current_time = Clock::get()?.unix_timestamp;
-    require!(match_timestamp > current_time + 86400, ErrorCode::MatchTooSoon);
+    require!(match_timestamp > current_time + 3600, ErrorCode::MatchTooSoon);
     
     let global_state = &ctx.accounts.global_state;
     require!(!global_state.is_paused, ErrorCode::SystemPaused);

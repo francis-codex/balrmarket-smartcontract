@@ -25,8 +25,9 @@ pub struct CreateEvent<'info> {
     #[account(
         mut,
         seeds = [b"market", market.market_id.as_bytes()],
-        bump,
-        constraint = market.admin == admin.key() @ ErrorCode::Unauthorized
+        bump
+        // Removed constraint: Allow any admin to create events for any market
+        // Admin validation is already handled by admin_hierarchy check above
     )]
     pub market: Account<'info, Market>,
 
@@ -39,6 +40,7 @@ pub struct CreateEvent<'info> {
     )]
     pub event: Account<'info, Event>,
     
+
     #[account(
         init,
         payer = admin,
@@ -50,7 +52,6 @@ pub struct CreateEvent<'info> {
     
     #[account(mut)]
     pub admin: Signer<'info>,
-    
     pub system_program: Program<'info, System>,
 }
 
@@ -70,16 +71,17 @@ pub fn handler(
     require!(opta_odds_yes > 0 && opta_odds_yes < 10000, ErrorCode::InvalidOdds);
     
     let current_time = Clock::get()?.unix_timestamp;
-    require!(match_timestamp > current_time + 86400, ErrorCode::MatchTooSoon);
+    require!(match_timestamp > current_time + 3600, ErrorCode::MatchTooSoon);
     
     let global_state = &ctx.accounts.global_state;
     require!(!global_state.is_paused, ErrorCode::SystemPaused);
     
     // Use hierarchical admin validation
     crate::utils::validate_any_admin_hierarchical(&ctx.accounts.admin_hierarchy, &ctx.accounts.admin.key())?;
-    
+
     let market = &mut ctx.accounts.market;
-    require!(market.admin == ctx.accounts.admin.key(), ErrorCode::Unauthorized);
+    // Removed constraint: Any admin can create events for any market
+    // require!(market.admin == ctx.accounts.admin.key(), ErrorCode::Unauthorized);
     require!(market.status == MarketStatus::Created, ErrorCode::InvalidMarketStatus);
     
     // Calculate share prices from OPTA odds

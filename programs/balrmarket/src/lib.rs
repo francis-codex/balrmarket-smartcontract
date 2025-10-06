@@ -72,14 +72,13 @@ pub mod balrmarket {
         )
     }
 
-    /// Place a new order with SOL escrow
+    /// Place a new order with SOL escrow (primary market - uses event's fixed prices)
     pub fn place_order(
         ctx: Context<PlaceOrder>,
         order_id: u64,
         event_id: String,
         order_type: OrderType,
         quantity: u64,
-        unit_price: u64,
     ) -> Result<()> {
         instructions::place_order::handler(
             ctx,
@@ -87,7 +86,6 @@ pub mod balrmarket {
             event_id,
             order_type,
             quantity,
-            unit_price,
         )
     }
 
