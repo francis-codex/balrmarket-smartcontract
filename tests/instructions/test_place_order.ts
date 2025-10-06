@@ -133,8 +133,8 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} }, // OrderType::Yes
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
+          // unit_price removed - smart contract determines it from event automatically
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -216,8 +216,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { no: {} }, // OrderType::No
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -295,8 +294,7 @@ describe("place_order", () => {
             new BN(orderId),
             eventId,
             { yes: {} },
-            new BN(quantity),
-            new BN(unitPrice)
+            new BN(quantity)
           )
           .accountsPartial({
             globalState: globalStatePda,
@@ -362,8 +360,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -416,8 +413,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -470,8 +466,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -524,8 +519,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -578,8 +572,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -625,8 +618,7 @@ describe("place_order", () => {
           new BN(orderId),
           emptyEventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -681,8 +673,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -704,7 +695,6 @@ describe("place_order", () => {
             eventId,
             { no: {} },
             new BN(quantity * 2),
-            new BN(unitPrice)
           )
           .accountsPartial({
             globalState: globalStatePda,
@@ -761,8 +751,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -814,8 +803,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { no: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -891,8 +879,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -954,8 +941,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { yes: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
@@ -1011,8 +997,7 @@ describe("place_order", () => {
           new BN(orderId),
           eventId,
           { no: {} },
-          new BN(quantity),
-          new BN(unitPrice)
+          new BN(quantity)
         )
         .accountsPartial({
           globalState: globalStatePda,
