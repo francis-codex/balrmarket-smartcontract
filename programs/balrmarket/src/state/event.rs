@@ -21,8 +21,8 @@ pub struct Event {
     pub status: EventStatus,
     pub payout_pool: u64,
     pub winning_outcome: Option<bool>,
-    pub opta_probability_yes: u16,
-    pub opta_probability_no: u16,
+    pub opta_probability_yes: u32,
+    pub opta_probability_no: u32,
     pub shares_minted_yes: u64,
     pub shares_minted_no: u64,
     pub remaining_shares: u64,
@@ -45,7 +45,7 @@ impl Event {
         1 +         // status
         8 +         // payout_pool
         1 + 1 +     // winning_outcome (Option<bool>)
-        2 + 2 +     // probabilities
+        4 + 4 +     // probabilities (u32 each)
         8 + 8 +     // shares_minted_yes, shares_minted_no
         8 +         // remaining_shares
         8 +         // total_matches

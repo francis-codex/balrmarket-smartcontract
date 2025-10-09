@@ -59,7 +59,7 @@ pub mod balrmarket {
         event_id: String,
         question: String,
         max_shares: u32,
-        opta_odds_yes: u16,
+        opta_odds_yes: u32,
         match_timestamp: i64,
     ) -> Result<()> {
         instructions::create_event::handler(

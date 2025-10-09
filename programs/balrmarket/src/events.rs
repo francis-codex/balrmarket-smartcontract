@@ -31,8 +31,8 @@ pub struct EventCreated {
     pub secondary_market_close: i64,
     pub admin: Pubkey,
     pub timestamp: i64,
-    pub opta_probability_yes: u16,
-    pub opta_probability_no: u16,
+    pub opta_probability_yes: u32,
+    pub opta_probability_no: u32,
 }
 
 #[event]

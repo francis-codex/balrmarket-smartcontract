@@ -26,7 +26,7 @@ pub enum ErrorCode {
     #[msg("Share count must be even")]
     ShareCountMustBeEven = 6007,
     
-    #[msg("Invalid odds (must be > 0 and < 10000 basis points)")]
+    #[msg("Invalid odds (must be > 0 and < 100000000 fixed-point value)")]
     InvalidOdds = 6008,
     
     #[msg("Match too soon (must be at least 24 hours in future)")]
