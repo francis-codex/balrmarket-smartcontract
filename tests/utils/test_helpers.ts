@@ -3,6 +3,32 @@ import { Program } from "@coral-xyz/anchor";
 import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
 import { Balrmarket } from "../../target/types/balrmarket";
 
+/**
+ * Rate-limited airdrop helper to avoid 429 errors
+ */
+export async function airdropWithRetry(
+  connection: anchor.web3.Connection,
+  publicKey: PublicKey,
+  amount: number,
+  maxRetries: number = 5
+): Promise<void> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const airdropTx = await connection.requestAirdrop(publicKey, amount);
+      await connection.confirmTransaction(airdropTx);
+      return;
+    } catch (error: any) {
+      if (error.message?.includes("429") && i < maxRetries - 1) {
+        const delay = Math.min(1000 * Math.pow(2, i), 10000); // Exponential backoff, max 10s
+        console.log(`      ⏳ Rate limited, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
 export interface TestAccounts {
   admin: Keypair;
   nonAdmin: Keypair;
@@ -24,18 +50,21 @@ export async function setupTestAccounts(
   const admin = Keypair.generate();
   const nonAdmin = Keypair.generate();
   
-  // Airdrop SOL to test accounts
-  const adminAirdropTx = await provider.connection.requestAirdrop(
+  // Airdrop SOL to test accounts with rate limit handling
+  await airdropWithRetry(
+    provider.connection,
     admin.publicKey,
     5 * anchor.web3.LAMPORTS_PER_SOL
   );
-  await provider.connection.confirmTransaction(adminAirdropTx);
-  
-  const nonAdminAirdropTx = await provider.connection.requestAirdrop(
+
+  // Add delay to avoid rate limiting
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  await airdropWithRetry(
+    provider.connection,
     nonAdmin.publicKey,
     2 * anchor.web3.LAMPORTS_PER_SOL
   );
-  await provider.connection.confirmTransaction(nonAdminAirdropTx);
   
   // Derive PDAs
   const [globalStatePda, globalStateBump] = PublicKey.findProgramAddressSync(

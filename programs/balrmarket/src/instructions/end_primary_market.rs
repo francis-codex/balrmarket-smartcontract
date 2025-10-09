@@ -16,7 +16,7 @@ pub struct EndPrimaryMarket<'info> {
     #[account(
         seeds = [b"admin_hierarchy"],
         bump,
-        constraint = admin_hierarchy.is_any_admin(&admin.key()) @ ErrorCode::Unauthorized
+        constraint = admin_hierarchy.is_super_admin(&admin.key()) @ ErrorCode::SuperAdminRequired
     )]
     pub admin_hierarchy: Account<'info, AdminHierarchy>,
     

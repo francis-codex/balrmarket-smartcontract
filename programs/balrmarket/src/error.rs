@@ -26,7 +26,7 @@ pub enum ErrorCode {
     #[msg("Share count must be even")]
     ShareCountMustBeEven = 6007,
     
-    #[msg("Invalid odds (must be > 0 and < 10000 basis points)")]
+    #[msg("Invalid odds (must be > 0 and < 100000000 fixed-point value)")]
     InvalidOdds = 6008,
     
     #[msg("Match too soon (must be at least 24 hours in future)")]
@@ -144,24 +144,18 @@ pub enum ErrorCode {
     ShareAlreadyMinted = 6046,
     
     // Admin Hierarchy Error Codes (6100-6199)
-    #[msg("Maximum super admin limit exceeded (max 3)")]
+    #[msg("Maximum super admin limit exceeded (max 10)")]
     MaxSuperAdminsExceeded = 6100,
-    
+
     #[msg("Cannot remove the last super admin")]
     CannotRemoveLastSuperAdmin = 6101,
-    
+
     #[msg("Admin already exists in the system")]
     AdminAlreadyExists = 6102,
-    
+
     #[msg("Admin not found")]
     AdminNotFound = 6103,
-    
-    #[msg("Insufficient admin privileges - super admin required")]
-    InsufficientAdminPrivileges = 6104,
-    
-    #[msg("Regular admin cannot perform this operation")]
-    RegularAdminUnauthorized = 6105,
-    
-    #[msg("Super admin required for admin management operations")]
-    SuperAdminRequired = 6106,
+
+    #[msg("Super admin required for this operation")]
+    SuperAdminRequired = 6104,
 }

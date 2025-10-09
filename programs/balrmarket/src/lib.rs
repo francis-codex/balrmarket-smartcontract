@@ -59,7 +59,7 @@ pub mod balrmarket {
         event_id: String,
         question: String,
         max_shares: u32,
-        opta_odds_yes: u16,
+        opta_odds_yes: u32,
         match_timestamp: i64,
     ) -> Result<()> {
         instructions::create_event::handler(
@@ -203,36 +203,11 @@ pub mod balrmarket {
         instructions::remove_super_admin::handler(ctx, admin_to_remove)
     }
 
-    /// Add a new regular admin (super admin only)
-    pub fn add_regular_admin(
-        ctx: Context<AddRegularAdmin>,
-        new_regular_admin: Pubkey,
+    /// Close admin hierarchy account (super admin only) - clears all admins
+    pub fn close_admin_hierarchy(
+        ctx: Context<CloseAdminHierarchy>,
     ) -> Result<()> {
-        instructions::add_regular_admin::handler(ctx, new_regular_admin)
-    }
-
-    /// Remove a regular admin (super admin only)
-    pub fn remove_regular_admin(
-        ctx: Context<RemoveRegularAdmin>,
-        admin_to_remove: Pubkey,
-    ) -> Result<()> {
-        instructions::remove_regular_admin::handler(ctx, admin_to_remove)
-    }
-
-    /// Promote a regular admin to super admin (super admin only)
-    pub fn promote_admin(
-        ctx: Context<PromoteAdmin>,
-        admin_to_promote: Pubkey,
-    ) -> Result<()> {
-        instructions::promote_admin::handler(ctx, admin_to_promote)
-    }
-
-    /// Demote a super admin to regular admin (super admin only)
-    pub fn demote_super_admin(
-        ctx: Context<DemoteSuperAdmin>,
-        admin_to_demote: Pubkey,
-    ) -> Result<()> {
-        instructions::demote_super_admin::handler(ctx, admin_to_demote)
+        instructions::close_admin_hierarchy::handler(ctx)
     }
 
     /// Get admin information (view function)

@@ -6,7 +6,7 @@ use crate::error::ErrorCode;
 use crate::utils::normalize_opta_odds;
 
 #[derive(Accounts)]
-#[instruction(event_id: String, question: String, max_shares: u32, opta_odds_yes: u16, match_timestamp: i64)]
+#[instruction(event_id: String, question: String, max_shares: u32, opta_odds_yes: u32, match_timestamp: i64)]
 pub struct CreateEvent<'info> {
     #[account(
         mut,
@@ -18,7 +18,7 @@ pub struct CreateEvent<'info> {
     #[account(
         seeds = [b"admin_hierarchy"],
         bump,
-        constraint = admin_hierarchy.is_any_admin(&admin.key()) @ ErrorCode::Unauthorized
+        constraint = admin_hierarchy.is_super_admin(&admin.key()) @ ErrorCode::SuperAdminRequired
     )]
     pub admin_hierarchy: Account<'info, AdminHierarchy>,
     
@@ -60,7 +60,7 @@ pub fn handler(
     event_id: String,
     question: String,
     max_shares: u32,
-    opta_odds_yes: u16,
+    opta_odds_yes: u32,
     match_timestamp: i64,
 ) -> Result<()> {
     require!(event_id.len() <= 50, ErrorCode::EventIdTooLong);
@@ -68,7 +68,7 @@ pub fn handler(
     require!(!event_id.is_empty() && !question.is_empty(), ErrorCode::InvalidInput);
     require!(max_shares > 0 && max_shares <= 1000, ErrorCode::InvalidShareCount);
     require!(max_shares % 2 == 0, ErrorCode::ShareCountMustBeEven);
-    require!(opta_odds_yes > 0 && opta_odds_yes < 10000, ErrorCode::InvalidOdds);
+    require!(opta_odds_yes > 0 && opta_odds_yes < 100000000, ErrorCode::InvalidOdds);
     
     let current_time = Clock::get()?.unix_timestamp;
     require!(match_timestamp > current_time + 3600, ErrorCode::MatchTooSoon);
@@ -76,8 +76,8 @@ pub fn handler(
     let global_state = &ctx.accounts.global_state;
     require!(!global_state.is_paused, ErrorCode::SystemPaused);
     
-    // Use hierarchical admin validation
-    crate::utils::validate_any_admin_hierarchical(&ctx.accounts.admin_hierarchy, &ctx.accounts.admin.key())?;
+    // Validate super admin
+    crate::utils::validate_super_admin(&ctx.accounts.admin_hierarchy, &ctx.accounts.admin.key())?;
 
     let market = &mut ctx.accounts.market;
     // Removed constraint: Any admin can create events for any market

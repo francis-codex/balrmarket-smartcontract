@@ -2,7 +2,8 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
 import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
 import { expect } from "chai";
-import { Balrmarket } from "../../target/types/balrmarket"
+import { Balrmarket } from "../../target/types/balrmarket";
+import { airdropWithRetry } from "../utils/test_helpers";
 
 describe("initialize_global_state", () => {
   const provider = anchor.AnchorProvider.env();
@@ -17,13 +18,13 @@ describe("initialize_global_state", () => {
   
   before(async () => {
     admin = Keypair.generate();
-    
-    const airdropTx = await provider.connection.requestAirdrop(
+
+    await airdropWithRetry(
+      provider.connection,
       admin.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL
     );
-    await provider.connection.confirmTransaction(airdropTx);
-    
+
     [globalStatePda, globalStateBump] = PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
       program.programId
@@ -63,11 +64,11 @@ describe("initialize_global_state", () => {
   it("Emits GlobalStateInitialized event", async () => {
     // Create new admin for fresh test
     const newAdmin = Keypair.generate();
-    const airdropTx = await provider.connection.requestAirdrop(
+    await airdropWithRetry(
+      provider.connection,
       newAdmin.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL
     );
-    await provider.connection.confirmTransaction(airdropTx);
     
     // Derive new global state PDA with different seed
     const [newGlobalStatePda] = PublicKey.findProgramAddressSync(
@@ -112,11 +113,11 @@ describe("initialize_global_state", () => {
 
   it("Fails when platform fee primary exceeds maximum (500 basis points)", async () => {
     const badAdmin = Keypair.generate();
-    const airdropTx = await provider.connection.requestAirdrop(
+    await airdropWithRetry(
+      provider.connection,
       badAdmin.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL
     );
-    await provider.connection.confirmTransaction(airdropTx);
     
     const [badGlobalStatePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("bad_global_state")],
@@ -146,11 +147,11 @@ describe("initialize_global_state", () => {
 
   it("Fails when platform fee secondary exceeds maximum (500 basis points)", async () => {
     const badAdmin2 = Keypair.generate();
-    const airdropTx = await provider.connection.requestAirdrop(
+    await airdropWithRetry(
+      provider.connection,
       badAdmin2.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL
     );
-    await provider.connection.confirmTransaction(airdropTx);
     
     const [badGlobalStatePda2] = PublicKey.findProgramAddressSync(
       [Buffer.from("bad_global_state_2")],
@@ -230,11 +231,11 @@ describe("initialize_global_state", () => {
 
   it("Successfully initializes with minimum fees (0)", async () => {
     const minFeeAdmin = Keypair.generate();
-    const airdropTx = await provider.connection.requestAirdrop(
+    await airdropWithRetry(
+      provider.connection,
       minFeeAdmin.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL
     );
-    await provider.connection.confirmTransaction(airdropTx);
     
     const [minFeeGlobalStatePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
@@ -270,11 +271,11 @@ describe("initialize_global_state", () => {
 
   it("Successfully initializes with maximum fees (500)", async () => {
     const maxFeeAdmin = Keypair.generate();
-    const airdropTx = await provider.connection.requestAirdrop(
+    await airdropWithRetry(
+      provider.connection,
       maxFeeAdmin.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL
     );
-    await provider.connection.confirmTransaction(airdropTx);
     
     const [maxFeeGlobalStatePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("global_state")],
