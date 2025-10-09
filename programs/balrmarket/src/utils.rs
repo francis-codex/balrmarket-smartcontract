@@ -2,17 +2,15 @@ use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 use crate::error::ErrorCode;
 
 /// Normalize OPTA odds by removing bookmaker margin
-/// Supports fixed-point representation with 4 decimal places
-/// e.g., 15000 = 1.5000 odds, 27500 = 2.7500 odds
 
-pub fn normalize_opta_odds(yes_odds_bp: u32) -> (u32, u32) {
+pub fn normalize_opta_odds(yes_odds_bp: u16) -> (u16, u16) {
     let yes_prob = yes_odds_bp as f64 / 10000.0;
-    let no_prob = (10000 - yes_odds_bp as u32) as f64 / 10000.0;
+    let no_prob = (10000 - yes_odds_bp) as f64 / 10000.0;
     let total_prob = yes_prob + no_prob;
-
-    let normalized_yes = (yes_prob / total_prob * 10000.0) as u32;
+    
+    let normalized_yes = (yes_prob / total_prob * 10000.0) as u16;
     let normalized_no = 10000 - normalized_yes;
-
+    
     (normalized_yes, normalized_no)
 }
 
