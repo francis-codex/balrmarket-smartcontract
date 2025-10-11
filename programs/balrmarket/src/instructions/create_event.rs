@@ -85,9 +85,11 @@ pub fn handler(
     require!(market.status == MarketStatus::Created, ErrorCode::InvalidMarketStatus);
     
     // Calculate share prices from OPTA odds
-    let normalized_odds = normalize_opta_odds(opta_odds_yes);
-    let yes_price_lamports = (normalized_odds.0 as u64 * LAMPORTS_PER_SOL) / 10000;
-    let no_price_lamports = (normalized_odds.1 as u64 * LAMPORTS_PER_SOL) / 10000;
+    let normalized_odds: (u32, u32) = normalize_opta_odds(opta_odds_yes);
+    // normalized_odds returns basis points (10000 = 100%)
+    // So price = (basis_points / 10000) * LAMPORTS_PER_SOL
+    let yes_price_lamports: u64 = (normalized_odds.0 as u64 * LAMPORTS_PER_SOL) / 10000;
+    let no_price_lamports: u64 = (normalized_odds.1 as u64 * LAMPORTS_PER_SOL) / 10000;
     
     let event = &mut ctx.accounts.event;
     event.event_id = event_id.clone();
