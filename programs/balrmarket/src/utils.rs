@@ -5,15 +5,12 @@ use crate::error::ErrorCode;
 /// Supports fixed-point representation with 4 decimal places
 /// e.g., 15000 = 1.5000 odds, 27500 = 2.7500 odds
 
+
 pub fn normalize_opta_odds(yes_odds_bp: u32) -> (u32, u32) {
-    let yes_prob = yes_odds_bp as f64 / 10000.0;
-    let no_prob = (10000 - yes_odds_bp as u32) as f64 / 10000.0;
-    let total_prob = yes_prob + no_prob;
-
-    let normalized_yes = (yes_prob / total_prob * 10000.0) as u32;
-    let normalized_no = 10000 - normalized_yes;
-
-    (normalized_yes, normalized_no)
+    // For prediction markets, probabilities must sum to 100%
+    // If YES = 69% (6900 bp), then NO = 31% (3100 bp)
+    let no_odds_bp = 10000 - yes_odds_bp;
+    (yes_odds_bp, no_odds_bp)
 }
 
 pub fn calculate_share_prices(yes_probability_bp: u16) -> (u64, u64) {
@@ -156,9 +153,10 @@ mod tests {
 
     #[test]
     fn test_normalize_opta_odds() {
-        let (yes_bp, no_bp) = normalize_opta_odds(6000);
-        assert_eq!(yes_bp + no_bp, 10000);
-        assert!(yes_bp > no_bp);
+        let (yes_bp, no_bp) = normalize_opta_odds(6900);
+        assert_eq!(yes_bp, 6900); // 69%
+        assert_eq!(no_bp, 3100);  // 31%
+        assert_eq!(yes_bp + no_bp, 10000); // Must sum to 100%
     }
 
     #[test]
