@@ -17,7 +17,7 @@ impl Market {
     pub const INIT_SPACE: usize = 4 + 50 + 4 + 100 + 4 + 100 + 8 + 8 + 32 + 1 + 1 + 1;
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum MarketStatus {
     Created,
     Active,
