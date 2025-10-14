@@ -46,39 +46,33 @@ pub struct CancelOrder<'info> {
 
 pub fn handler(
     ctx: Context<CancelOrder>,
-    order_id: u64,
+    _order_id: u64,
     event_id: String,
 ) -> Result<()> {
     let order = &mut ctx.accounts.order;
     let escrow_account = &ctx.accounts.escrow_account;
-    
+
     require!(order.status == OrderStatus::Pending, ErrorCode::OrderAlreadyFilled);
     require!(order.buyer == ctx.accounts.buyer.key(), ErrorCode::Unauthorized);
-    
+
     let refund_amount = escrow_account.amount;
-    
-    system_program::transfer(
-        CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.escrow_account.to_account_info(),
-                to: ctx.accounts.buyer.to_account_info(),
-            },
-        ),
-        refund_amount,
-    )?;
-    
+
+    // Transfer lamports from escrow to buyer
+    // Note: The close constraint on escrow_account will handle the remaining rent
+    **ctx.accounts.escrow_account.to_account_info().try_borrow_mut_lamports()? -= refund_amount;
+    **ctx.accounts.buyer.to_account_info().try_borrow_mut_lamports()? += refund_amount;
+
     order.status = OrderStatus::Cancelled;
-    
+
     let current_time = Clock::get()?.unix_timestamp;
-    
+
     emit!(OrderCancelled {
-        order_id,
+        order_id: _order_id,
         event_id,
         buyer: ctx.accounts.buyer.key(),
         refund_amount,
         timestamp: current_time,
     });
-    
+
     Ok(())
 }
