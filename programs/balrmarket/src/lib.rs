@@ -216,4 +216,184 @@ pub mod balrmarket {
     ) -> Result<AdminInfoResponse> {
         instructions::get_admin_info::handler(ctx)
     }
+
+    // ==================== CRUD FUNCTIONS ====================
+
+    // ORDER CRUD
+    /// Get a single order by event_id and order_id
+    pub fn get_order(
+        ctx: Context<GetOrder>,
+        event_id: String,
+        order_id: u64,
+    ) -> Result<OrderResponse> {
+        instructions::crud::order_crud::get_order_handler(ctx, event_id, order_id)
+    }
+
+    /// Get all orders for a specific user
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_user_orders(
+        ctx: Context<GetUserOrders>,
+        user: Pubkey,
+        status_filter: Option<OrderStatus>,
+        event_filter: Option<String>,
+    ) -> Result<Vec<OrderResponse>> {
+        instructions::crud::order_crud::get_user_orders_handler(ctx, user, status_filter, event_filter)
+    }
+
+    /// Get all orders for a specific event
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_event_orders(
+        ctx: Context<GetEventOrders>,
+        event_id: String,
+        order_type_filter: Option<OrderType>,
+        status_filter: Option<OrderStatus>,
+    ) -> Result<Vec<OrderResponse>> {
+        instructions::crud::order_crud::get_event_orders_handler(ctx, event_id, order_type_filter, status_filter)
+    }
+
+    /// Get all orders (admin only)
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_all_orders(
+        ctx: Context<GetAllOrders>,
+        status_filter: Option<OrderStatus>,
+        order_type_filter: Option<OrderType>,
+    ) -> Result<Vec<OrderResponse>> {
+        instructions::crud::order_crud::get_all_orders_handler(ctx, status_filter, order_type_filter)
+    }
+
+    // EVENT CRUD
+    /// Get a single event by market_id and event_id
+    pub fn get_event(
+        ctx: Context<GetEvent>,
+        market_id: String,
+        event_id: String,
+    ) -> Result<EventResponse> {
+        instructions::crud::event_crud::get_event_handler(ctx, market_id, event_id)
+    }
+
+    /// Get all events by market
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_events_by_market(
+        ctx: Context<GetEventsByMarket>,
+        market_id: String,
+        status_filter: Option<EventStatus>,
+    ) -> Result<Vec<EventResponse>> {
+        instructions::crud::event_crud::get_events_by_market_handler(ctx, market_id, status_filter)
+    }
+
+    /// Get all events
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_all_events(
+        ctx: Context<GetAllEvents>,
+        status_filter: Option<EventStatus>,
+        admin_filter: Option<Pubkey>,
+    ) -> Result<Vec<EventResponse>> {
+        instructions::crud::event_crud::get_all_events_handler(ctx, status_filter, admin_filter)
+    }
+
+    /// Update event details (admin only)
+    pub fn update_event(
+        ctx: Context<UpdateEvent>,
+        market_id: String,
+        event_id: String,
+        question: Option<String>,
+        status: Option<EventStatus>,
+    ) -> Result<()> {
+        instructions::crud::event_crud::update_event_handler(ctx, market_id, event_id, question, status)
+    }
+
+    /// Resolve event with winning outcome (admin only)
+    pub fn resolve_event(
+        ctx: Context<ResolveEvent>,
+        market_id: String,
+        event_id: String,
+        winning_outcome: bool,
+    ) -> Result<()> {
+        instructions::crud::event_crud::resolve_event_handler(ctx, market_id, event_id, winning_outcome)
+    }
+
+    /// Cancel event (admin only)
+    pub fn cancel_event(
+        ctx: Context<CancelEvent>,
+        market_id: String,
+        event_id: String,
+    ) -> Result<()> {
+        instructions::crud::event_crud::cancel_event_handler(ctx, market_id, event_id)
+    }
+
+    // MATCHED PAIR CRUD
+    /// Get a single matched pair by event_id and matched_pair_id
+    pub fn get_matched_pair(
+        ctx: Context<GetMatchedPair>,
+        event_id: String,
+        matched_pair_id: u64,
+    ) -> Result<MatchedPairResponse> {
+        instructions::crud::matched_pair_crud::get_matched_pair_handler(ctx, event_id, matched_pair_id)
+    }
+
+    /// Get all matched pairs for a specific event
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_event_matches(
+        ctx: Context<GetEventMatches>,
+        event_id: String,
+    ) -> Result<Vec<MatchedPairResponse>> {
+        instructions::crud::matched_pair_crud::get_event_matches_handler(ctx, event_id)
+    }
+
+    /// Get all matched pairs for a specific user
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_user_matches(
+        ctx: Context<GetUserMatches>,
+        user: Pubkey,
+        event_filter: Option<String>,
+    ) -> Result<Vec<MatchedPairResponse>> {
+        instructions::crud::matched_pair_crud::get_user_matches_handler(ctx, user, event_filter)
+    }
+
+    /// Get all matched pairs (admin only)
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_all_matches(
+        ctx: Context<GetAllMatches>,
+        event_filter: Option<String>,
+    ) -> Result<Vec<MatchedPairResponse>> {
+        instructions::crud::matched_pair_crud::get_all_matches_handler(ctx, event_filter)
+    }
+
+    // MARKET CRUD
+    /// Get a single market by market_id
+    pub fn get_market(
+        ctx: Context<GetMarket>,
+        market_id: String,
+    ) -> Result<MarketResponse> {
+        instructions::crud::market_crud::get_market_handler(ctx, market_id)
+    }
+
+    /// Get all markets
+    /// Note: This should be called via client-side RPC using getProgramAccounts
+    pub fn get_all_markets(
+        ctx: Context<GetAllMarkets>,
+        status_filter: Option<MarketStatus>,
+    ) -> Result<Vec<MarketResponse>> {
+        instructions::crud::market_crud::get_all_markets_handler(ctx, status_filter)
+    }
+
+    /// Update market details (admin only)
+    pub fn update_market(
+        ctx: Context<UpdateMarket>,
+        market_id: String,
+        team_a: Option<String>,
+        team_b: Option<String>,
+        match_timestamp: Option<i64>,
+        status: Option<MarketStatus>,
+    ) -> Result<()> {
+        instructions::crud::market_crud::update_market_handler(ctx, market_id, team_a, team_b, match_timestamp, status)
+    }
+
+    /// Deactivate market (admin only)
+    pub fn deactivate_market(
+        ctx: Context<DeactivateMarket>,
+        market_id: String,
+    ) -> Result<()> {
+        instructions::crud::market_crud::deactivate_market_handler(ctx, market_id)
+    }
 }
