@@ -8,21 +8,29 @@ pub struct ShareToken {
     pub quantity: u64,
     pub mint_authority: Pubkey,
     pub created_at: i64,
+    // Secondary market locking fields
+    pub is_locked: bool,
+    pub lock_order_id: Option<u64>,
+    pub locked_at: Option<i64>,
     pub bump: u8,
 }
 
 impl ShareToken {
-    pub const INIT_SPACE: usize = 
+    pub const INIT_SPACE: usize =
         4 + 50 +    // event_id (String)
         32 +        // owner
         1 +         // share_type
         8 +         // quantity
         32 +        // mint_authority
         8 +         // created_at
+        // Secondary market locking fields
+        1 +         // is_locked (bool)
+        1 + 8 +     // lock_order_id (Option<u64>)
+        1 + 8 +     // locked_at (Option<i64>)
         1;          // bump
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum ShareType {
     Yes,
     No,
