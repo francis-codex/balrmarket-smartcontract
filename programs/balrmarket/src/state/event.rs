@@ -55,7 +55,7 @@ impl Event {
         1;          // bump
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum EventStatus {
     Created,
     Active,        // renamed from PrimaryActive for consistency

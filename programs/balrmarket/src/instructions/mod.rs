@@ -17,6 +17,10 @@ pub mod remove_super_admin;
 pub mod close_admin_hierarchy;
 pub mod get_admin_info;
 
+// CRUD modules
+pub mod crud;
+pub mod responses;
+
 pub use initialize_global_state::*;
 pub use create_market::*;
 pub use create_event::*;
@@ -35,3 +39,7 @@ pub use add_super_admin::*;
 pub use remove_super_admin::*;
 pub use close_admin_hierarchy::*;
 pub use get_admin_info::*;
+
+// CRUD exports
+pub use crud::*;
+pub use responses::*;
