@@ -194,3 +194,93 @@ pub struct SuperAdminRemoved {
     pub removed_by: Pubkey,
     pub timestamp: i64,
 }
+
+// Secondary Market Events
+#[event]
+pub struct SecondaryMarketOpened {
+    pub event_id: String,
+    pub market_id: String,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryShareListed {
+    pub event_id: String,
+    pub seller: Pubkey,
+    pub share_type: String,
+    pub quantity: u64,
+    pub price_per_share: u64,
+    pub order_id: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryOrderCancelled {
+    pub event_id: String,
+    pub order_id: u64,
+    pub seller: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryBidPlaced {
+    pub event_id: String,
+    pub order_id: u64,
+    pub bid_id: u64,
+    pub buyer: Pubkey,
+    pub bid_price: u64,
+    pub quantity: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryBidAccepted {
+    pub event_id: String,
+    pub order_id: u64,
+    pub bid_id: u64,
+    pub seller: Pubkey,
+    pub buyer: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryTradeSettled {
+    pub event_id: String,
+    pub trade_id: u64,
+    pub seller: Pubkey,
+    pub buyer: Pubkey,
+    pub share_type: String,
+    pub quantity: u64,
+    pub price_per_share: u64,
+    pub total_amount: u64,
+    pub platform_fee: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryMarketResolved {
+    pub event_id: String,
+    pub market_id: String,
+    pub winning_outcome: bool,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryPayoutClaimed {
+    pub event_id: String,
+    pub claimer: Pubkey,
+    pub share_type: String,
+    pub winning_shares: u64,
+    pub payout_amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct PriceSnapshotUpdated {
+    pub event_id: String,
+    pub best_yes_bid: u64,
+    pub best_yes_ask: u64,
+    pub best_no_bid: u64,
+    pub best_no_ask: u64,
+    pub timestamp: i64,
+}
