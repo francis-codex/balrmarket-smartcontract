@@ -284,3 +284,23 @@ pub struct PriceSnapshotUpdated {
     pub best_no_ask: u64,
     pub timestamp: i64,
 }
+
+#[event]
+pub struct SecondaryWinningsDisbursed {
+    pub event_id: String,
+    pub winner: Pubkey,
+    pub share_type: String,
+    pub winning_shares: u64,
+    pub payout_amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryPayoutClaimedManual {
+    pub event_id: String,
+    pub claimer: Pubkey,
+    pub share_type: String,
+    pub winning_shares: u64,
+    pub payout_amount: u64,
+    pub timestamp: i64,
+}
