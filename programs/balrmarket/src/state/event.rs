@@ -30,11 +30,17 @@ pub struct Event {
     pub event_start_time: i64,
     pub primary_market_closed_at: Option<i64>,
     pub total_platform_fees: u64,
+    // Secondary market fields
+    pub secondary_market_state: Option<Pubkey>,
+    pub secondary_market_opened_at: Option<i64>,
+    pub secondary_market_closed_at: Option<i64>,
+    pub total_secondary_trades: u64,
+    pub total_secondary_volume: u64,
     pub bump: u8,
 }
 
 impl Event {
-    pub const INIT_SPACE: usize = 
+    pub const INIT_SPACE: usize =
         4 + 50 +    // event_id
         4 + 50 +    // market_id
         4 + 200 +   // question
@@ -52,6 +58,12 @@ impl Event {
         8 +         // event_start_time
         1 + 8 +     // primary_market_closed_at (Option<i64>)
         8 +         // total_platform_fees
+        // Secondary market fields
+        1 + 32 +    // secondary_market_state (Option<Pubkey>)
+        1 + 8 +     // secondary_market_opened_at (Option<i64>)
+        1 + 8 +     // secondary_market_closed_at (Option<i64>)
+        8 +         // total_secondary_trades
+        8 +         // total_secondary_volume
         1;          // bump
 }
 
