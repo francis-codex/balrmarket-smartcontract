@@ -6,6 +6,7 @@ pub mod order_book;
 pub mod user_portfolio;
 pub mod share_token;
 pub mod admin_hierarchy;
+pub mod secondary_market;
 
 // Re-export all state structs and enums
 pub use global_state::*;
@@ -16,3 +17,4 @@ pub use order_book::*;
 pub use user_portfolio::*;
 pub use share_token::*;
 pub use admin_hierarchy::*;
+pub use secondary_market::*;

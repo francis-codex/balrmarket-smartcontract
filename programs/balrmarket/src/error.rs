@@ -158,4 +158,53 @@ pub enum ErrorCode {
 
     #[msg("Super admin required for this operation")]
     SuperAdminRequired = 6104,
+
+    // Secondary Market Error Codes (6200-6215)
+    #[msg("Secondary market not open for trading")]
+    SecondaryMarketNotOpen = 6200,
+
+    #[msg("Secondary market already open for this event")]
+    SecondaryMarketAlreadyOpen = 6201,
+
+    #[msg("Invalid secondary market price (must be 0 < price < 1 SOL)")]
+    InvalidSecondaryPrice = 6202,
+
+    #[msg("Share is not locked")]
+    ShareNotLocked = 6203,
+
+    #[msg("Share is already locked for another order")]
+    ShareAlreadyLocked = 6204,
+
+    #[msg("Insufficient locked shares for this operation")]
+    InsufficientLockedShares = 6205,
+
+    #[msg("Invalid signature - signature verification failed")]
+    InvalidSignature = 6206,
+
+    #[msg("Bid has not been accepted yet")]
+    BidNotAccepted = 6207,
+
+    #[msg("Order is not active")]
+    OrderNotActive = 6208,
+
+    #[msg("Bid has expired")]
+    BidExpired = 6209,
+
+    #[msg("Order has expired")]
+    OrderExpired = 6210,
+
+    #[msg("Market has not been resolved yet")]
+    MarketNotResolved = 6211,
+
+    #[msg("Payout has already been claimed")]
+    PayoutAlreadyClaimed = 6212,
+
+    #[msg("User has no winning shares to claim")]
+    NoWinningShares = 6213,
+
+    #[msg("Invalid bid quantity - must be within order limits")]
+    InvalidBidQuantity = 6214,
+
+    #[msg("Price is out of valid range")]
+    PriceOutOfRange = 6215,
 }
