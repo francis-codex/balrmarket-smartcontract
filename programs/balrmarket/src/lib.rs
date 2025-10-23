@@ -217,7 +217,7 @@ pub mod balrmarket {
         instructions::get_admin_info::handler(ctx)
     }
 
-    //  CRUD FUNCTIONS 
+    // ==================== CRUD FUNCTIONS ====================
 
     // ORDER CRUD
     /// Get a single order by event_id and order_id
@@ -395,129 +395,5 @@ pub mod balrmarket {
         market_id: String,
     ) -> Result<()> {
         instructions::crud::market_crud::deactivate_market_handler(ctx, market_id)
-    }
-
-    //  SECONDARY MARKET FUNCTIONS 
-
-    /// Open secondary market after primary closes
-    pub fn open_secondary_market(
-        ctx: Context<OpenSecondaryMarket>,
-        event_id: String,
-    ) -> Result<()> {
-        instructions::secondary::open_secondary_market::handler(ctx, event_id)
-    }
-
-    /// List shares for sale on secondary market
-    pub fn list_share_for_sale(
-        ctx: Context<ListShareForSale>,
-        order_id: u64,
-        event_id: String,
-        quantity: u64,
-        price_per_share: u64,
-    ) -> Result<()> {
-        instructions::secondary::list_share_for_sale::handler(
-            ctx,
-            order_id,
-            event_id,
-            quantity,
-            price_per_share,
-        )
-    }
-
-    /// Place a bid on a secondary market order
-    pub fn place_secondary_bid(
-        ctx: Context<PlaceSecondaryBid>,
-        bid_id: u64,
-        event_id: String,
-        order_id: u64,
-        bid_price: u64,
-        quantity: u64,
-    ) -> Result<()> {
-        instructions::secondary::place_secondary_bid::handler(
-            ctx,
-            bid_id,
-            event_id,
-            order_id,
-            bid_price,
-            quantity,
-        )
-    }
-
-    /// Accept a bid on secondary market order
-    pub fn accept_secondary_bid(
-        ctx: Context<AcceptSecondaryBid>,
-        event_id: String,
-        order_id: u64,
-        bid_id: u64,
-    ) -> Result<()> {
-        instructions::secondary::accept_secondary_bid::handler(
-            ctx,
-            event_id,
-            order_id,
-            bid_id,
-        )
-    }
-
-    /// Batch settle accepted trades (backend authority)
-    pub fn batch_settle_trades(
-        ctx: Context<BatchSettleTrades>,
-        event_id: String,
-        trades: Vec<TradeData>,
-    ) -> Result<()> {
-        instructions::secondary::batch_settle_trades::handler(ctx, event_id, trades)
-    }
-
-    /// Cancel a secondary market order
-    pub fn cancel_secondary_order(
-        ctx: Context<CancelSecondaryOrder>,
-        event_id: String,
-        order_id: u64,
-    ) -> Result<()> {
-        instructions::secondary::cancel_secondary_order::handler(ctx, event_id, order_id)
-    }
-
-    /// Update price snapshot (backend authority)
-    pub fn update_price_snapshot(
-        ctx: Context<UpdatePriceSnapshot>,
-        event_id: String,
-        best_yes_bid: u64,
-        best_yes_ask: u64,
-        best_no_bid: u64,
-        best_no_ask: u64,
-    ) -> Result<()> {
-        instructions::secondary::update_price_snapshot::handler(
-            ctx,
-            event_id,
-            best_yes_bid,
-            best_yes_ask,
-            best_no_bid,
-            best_no_ask,
-        )
-    }
-
-    /// Resolve secondary market and set winning outcome (admin only)
-    pub fn resolve_secondary_market(
-        ctx: Context<ResolveSecondaryMarket>,
-        event_id: String,
-        winning_outcome: bool,
-    ) -> Result<()> {
-        instructions::secondary::resolve_secondary_market::handler(ctx, event_id, winning_outcome)
-    }
-
-    /// Disburse winnings to winner (admin/backend)
-    pub fn disburse_winnings(
-        ctx: Context<DisburseWinnings>,
-        event_id: String,
-        claim_id: u64,
-    ) -> Result<()> {
-        instructions::secondary::disburse_winnings::handler(ctx, event_id, claim_id)
-    }
-
-    /// Claim payout manually (fallback for users)
-    pub fn claim_payout(
-        ctx: Context<ClaimPayout>,
-        event_id: String,
-    ) -> Result<()> {
-        instructions::secondary::claim_payout::handler(ctx, event_id)
     }
 }
