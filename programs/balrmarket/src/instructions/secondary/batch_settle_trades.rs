@@ -195,8 +195,6 @@ pub fn handler(
             timestamp: current_time,
         });
     }
-
-     //
     // Update secondary market state
     let secondary_market_state = &mut ctx.accounts.secondary_market_state;
     secondary_market_state.total_trades_settled = secondary_market_state
