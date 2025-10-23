@@ -21,6 +21,9 @@ pub mod get_admin_info;
 pub mod crud;
 pub mod responses;
 
+// Secondary market instructions
+pub mod secondary;
+
 pub use initialize_global_state::*;
 pub use create_market::*;
 pub use create_event::*;
@@ -43,3 +46,6 @@ pub use get_admin_info::*;
 // CRUD exports
 pub use crud::*;
 pub use responses::*;
+
+// Secondary market exports
+pub use secondary::*;
