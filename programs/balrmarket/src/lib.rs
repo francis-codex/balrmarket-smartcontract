@@ -458,6 +458,23 @@ pub mod balrmarket {
         )
     }
 
+    /// V2: Finalize secondary market order with multiple off-chain bids
+    /// This consolidates bid creation, acceptance, and settlement into one transaction
+    /// Requires Ed25519 signature verification for each bid
+    pub fn finalize_secondary_order<'info>(
+        ctx: Context<'_, '_, '_, 'info, FinalizeSecondaryOrder<'info>>,
+        event_id: String,
+        order_id: u64,
+        bids: Vec<BidFinalizationData>,
+    ) -> Result<()> {
+        instructions::secondary::finalize_secondary_order::handler(
+            ctx,
+            event_id,
+            order_id,
+            bids,
+        )
+    }
+
     /// Batch settle accepted trades (backend authority)
     pub fn batch_settle_trades(
         ctx: Context<BatchSettleTrades>,

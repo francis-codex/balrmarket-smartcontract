@@ -257,6 +257,24 @@ pub struct SecondaryTradeSettled {
     pub timestamp: i64,
 }
 
+// V2: Event for consolidated order finalization
+/// Emitted when an order is finalized with multiple bids in one transaction
+/// This is a summary event - individual SecondaryBidPlaced, SecondaryBidAccepted,
+/// and SecondaryTradeSettled events are also emitted for each bid
+#[event]
+pub struct SecondaryOrderFinalized {
+    pub event_id: String,
+    pub order_id: u64,
+    pub seller: Pubkey,
+    pub bid_count: u64,                 // Number of bids finalized
+    pub total_quantity: u64,            // Total shares transferred
+    pub total_seller_receives: u64,     // Total SOL seller receives (after fees)
+    pub total_platform_fees: u64,       // Total platform fees collected
+    pub order_status: String,           // "PartiallyFilled" or "Filled"
+    pub remaining_quantity: u64,        // Shares still available after finalization
+    pub timestamp: i64,
+}
+
 #[event]
 pub struct SecondaryMarketResolved {
     pub event_id: String,

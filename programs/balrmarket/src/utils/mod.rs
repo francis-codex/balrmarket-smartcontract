@@ -1,6 +1,10 @@
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 use crate::error::ErrorCode;
 
+// V2: Signature verification utilities for off-chain bidding
+pub mod signature;
+pub use signature::*;
+
 /// Normalize OPTA odds by removing bookmaker margin
 /// Supports fixed-point representation with 4 decimal places
 /// e.g., 15000 = 1.5000 odds, 27500 = 2.7500 odds

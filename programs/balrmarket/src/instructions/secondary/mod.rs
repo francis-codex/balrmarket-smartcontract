@@ -10,6 +10,9 @@ pub mod resolve_secondary_market;
 pub mod disburse_winnings;
 pub mod claim_payout;
 
+// V2: Off-chain bidding with on-chain finalization
+pub mod finalize_secondary_order;
+
 // Re-export
 pub use open_secondary_market::*;
 pub use list_share_for_sale::*;
@@ -21,3 +24,6 @@ pub use update_price_snapshot::*;
 pub use resolve_secondary_market::*;
 pub use disburse_winnings::*;
 pub use claim_payout::*;
+
+// V2: Re-export
+pub use finalize_secondary_order::*;

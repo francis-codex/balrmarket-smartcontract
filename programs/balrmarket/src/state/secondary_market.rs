@@ -46,9 +46,10 @@ pub enum SecondaryMarketStatus {
     Paused,
 }
 
-//  SECONDARY ORDER 
+//  SECONDARY ORDER
 
 /// Represents a seller's listing on the secondary market
+/// V2: Added finalized_bid_count and total_finalized_quantity for new bidding flow
 #[account]
 pub struct SecondaryOrder {
     pub order_id: u64,
@@ -62,6 +63,9 @@ pub struct SecondaryOrder {
     pub created_at: i64,
     pub expires_at: i64,
     pub locked_share_token: Pubkey, // Reference to locked ShareToken
+    // V2: New fields for finalization tracking
+    pub finalized_bid_count: u64,       // Track how many bids finalized
+    pub total_finalized_quantity: u64,  // Track total quantity finalized
     pub bump: u8,
 }
 
@@ -78,6 +82,8 @@ impl SecondaryOrder {
         8 +         // created_at
         8 +         // expires_at
         32 +        // locked_share_token
+        8 +         // finalized_bid_count (V2)
+        8 +         // total_finalized_quantity (V2)
         1;          // bump
 }
 
@@ -90,9 +96,10 @@ pub enum SecondaryOrderStatus {
     Expired,
 }
 
-//  SECONDARY BID 
+//  SECONDARY BID
 
 /// Represents a buyer's bid on a secondary market order
+/// V2: Added buyer_signature, nonce, and finalized_at for new bidding flow
 #[account]
 pub struct SecondaryBid {
     pub bid_id: u64,
@@ -105,6 +112,10 @@ pub struct SecondaryBid {
     pub created_at: i64,
     pub expires_at: i64,
     pub accepted_at: Option<i64>,
+    // V2: New fields for signature verification and finalization
+    pub buyer_signature: [u8; 64],      // Ed25519 signature from buyer
+    pub nonce: u64,                      // Unique nonce for replay protection
+    pub finalized_at: Option<i64>,       // When bid was finalized on-chain
     pub bump: u8,
 }
 
@@ -120,6 +131,9 @@ impl SecondaryBid {
         8 +         // created_at
         8 +         // expires_at
         1 + 8 +     // accepted_at (Option<i64>)
+        64 +        // buyer_signature (V2)
+        8 +         // nonce (V2)
+        1 + 8 +     // finalized_at (Option<i64>) (V2)
         1;          // bump
 }
 
@@ -239,7 +253,39 @@ pub enum ClaimStatus {
     Rejected,
 }
 
-//  HELPER STRUCTS 
+//  V2: NONCE REGISTRY
+
+/// V2: Track used nonces to prevent replay attacks
+/// This prevents the same signed bid from being used multiple times
+#[account]
+pub struct NonceRegistry {
+    pub order_id: u64,
+    pub event_id: String,
+    pub used_nonces: Vec<u64>,           // Store used nonces
+    pub bump: u8,
+}
+
+impl NonceRegistry {
+    pub const INIT_SPACE: usize =
+        8 +         // order_id
+        4 + 50 +    // event_id (String with max 50 chars)
+        4 + (8 * 1000) + // used_nonces Vec (max 1000 nonces = 8KB)
+        1;          // bump
+
+    /// Check if a nonce has been used
+    pub fn is_nonce_used(&self, nonce: u64) -> bool {
+        self.used_nonces.contains(&nonce)
+    }
+
+    /// Mark a nonce as used
+    pub fn mark_nonce_used(&mut self, nonce: u64) {
+        if !self.used_nonces.contains(&nonce) {
+            self.used_nonces.push(nonce);
+        }
+    }
+}
+
+//  HELPER STRUCTS
 
 /// Trade data for batch settlement
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -255,6 +301,19 @@ pub struct TradeData {
     pub bid_id: u64,
 }
 
+/// V2: Data structure for off-chain bid finalization
+/// This struct is used in the new finalize_secondary_order instruction
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct BidFinalizationData {
+    pub bid_id: u64,
+    pub buyer: Pubkey,
+    pub quantity: u64,
+    pub price_per_share: u64,
+    pub buyer_signature: [u8; 64],      // Ed25519 signature from buyer
+    pub nonce: u64,                      // Unique nonce to prevent replay
+    pub timestamp: i64,                  // When bid was created off-chain
+}
+
 /// Price snapshot for historical tracking
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct PriceSnapshot {
@@ -265,10 +324,14 @@ pub struct PriceSnapshot {
     pub timestamp: i64,
 }
 
-//  CONSTANTS 
+//  CONSTANTS
 
 /// Maximum number of trades that can be settled in a single batch
 pub const MAX_BATCH_TRADES: usize = 100;
+
+/// V2: Maximum number of bids that can be finalized in a single transaction
+/// Limited by compute units and account constraints
+pub const MAX_BIDS_PER_FINALIZATION: usize = 10;
 
 /// Maximum platform fee (5% = 500 basis points)
 pub const MAX_PLATFORM_FEE_BPS: u16 = 500;

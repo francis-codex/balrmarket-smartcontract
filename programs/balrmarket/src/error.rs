@@ -207,4 +207,38 @@ pub enum ErrorCode {
 
     #[msg("Price is out of valid range")]
     PriceOutOfRange = 6215,
+
+    // V2: Signature Verification Error Codes (6216-6225)
+    #[msg("Invalid instructions sysvar account")]
+    InvalidInstructionsSysvar = 6216,
+
+    #[msg("Invalid signature instruction format or data")]
+    InvalidSignatureInstruction = 6217,
+
+    #[msg("Signature public key does not match expected buyer")]
+    SignaturePublicKeyMismatch = 6218,
+
+    #[msg("Signature bytes do not match")]
+    SignatureMismatch = 6219,
+
+    #[msg("Signature message does not match expected message")]
+    SignatureMessageMismatch = 6220,
+
+    #[msg("Nonce has already been used - replay attack prevented")]
+    NonceAlreadyUsed = 6221,
+
+    #[msg("Bid timestamp is too old")]
+    BidTimestampTooOld = 6222,
+
+    #[msg("Insufficient accounts provided in remaining_accounts")]
+    InsufficientAccounts = 6223,
+
+    #[msg("Buyer account does not match bid data")]
+    BuyerAccountMismatch = 6224,
+
+    #[msg("Invalid batch size - must be between 1 and MAX_BIDS_PER_FINALIZATION")]
+    InvalidBatchSize = 6225,
+
+    #[msg("Insufficient quantity remaining in order")]
+    InsufficientQuantity = 6226,
 }
