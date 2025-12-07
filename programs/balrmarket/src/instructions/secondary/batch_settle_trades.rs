@@ -1,9 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{self, Transfer};
 use crate::state::{
     GlobalState, Event, EventStatus, SecondaryMarketState, SecondaryMarketStatus,
-    SecondaryOrder, SecondaryBid, SecondaryBidStatus, ShareToken, ShareLock, LockStatus,
-    SettledTrade, ShareType, TradeData, MAX_BATCH_TRADES
+    ShareType, TradeData, MAX_BATCH_TRADES
 };
 use crate::events::SecondaryTradeSettled;
 use crate::error::ErrorCode;

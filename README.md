@@ -265,9 +265,9 @@ const [shareTokenAccount] = PublicKey.findProgramAddressSync(
 - `systemProgram`: Solana system program
 
 **Parameters**:
-- ✅ **Frontend Must Provide**: `admin` (Pubkey), `platform_fee_primary` (u16), `platform_fee_secondary` (u16)
-- ⚡ **Auto-Generated**: None
-- 🔧 **Conditional**: None
+- **Frontend Must Provide**: `admin` (Pubkey), `platform_fee_primary` (u16), `platform_fee_secondary` (u16)
+- **Auto-Generated**: None
+- **Conditional**: None
 
 **TypeScript Example**:
 ```typescript
@@ -314,9 +314,9 @@ async function initializeGlobalState(
 - `systemProgram`: Solana system program
 
 **Parameters**:
-- ✅ **Frontend Must Provide**: `market_id` (String ≤50 chars), `team_a` (String ≤100 chars), `team_b` (String ≤100 chars), `match_timestamp` (i64)
-- ⚡ **Auto-Generated**: Market account PDA
-- 🔧 **Conditional**: None
+- **Frontend Must Provide**: `market_id` (String ≤50 chars), `team_a` (String ≤100 chars), `team_b` (String ≤100 chars), `match_timestamp` (i64)
+- **Auto-Generated**: Market account PDA
+- **Conditional**: None
 
 **Pre-transaction Setup**:
 - Ensure match timestamp is at least 24 hours in future
@@ -385,9 +385,9 @@ async function createMarket(
 - `systemProgram`: Solana system program
 
 **Parameters**:
-- ✅ **Frontend Must Provide**: `event_id` (String ≤50), `question` (String ≤200), `max_shares` (u32, even number ≤1000), `opta_odds_yes` (u16, basis points), `match_timestamp` (i64)
-- ⚡ **Auto-Generated**: Event and orderbook PDAs, normalized odds, share prices
-- 🔧 **Conditional**: None
+- **Frontend Must Provide**: `event_id` (String ≤50), `question` (String ≤200), `max_shares` (u32, even number ≤1000), `opta_odds_yes` (u16, basis points), `match_timestamp` (i64)
+- **Auto-Generated**: Event and orderbook PDAs, normalized odds, share prices
+- **Conditional**: None
 
 **Pre-transaction Setup**:
 - Market must exist
@@ -464,9 +464,9 @@ async function createEvent(
 - `systemProgram`: Solana system program
 
 **Parameters**:
-- ✅ **Frontend Must Provide**: `order_id` (u64), `event_id` (String), `order_type` (YES/NO), `quantity` (u64 ≤500), `unit_price` (u64, lamports per share)
-- ⚡ **Auto-Generated**: Order and escrow PDAs, total cost calculation
-- 🔧 **Conditional**: Platform fee calculation
+- **Frontend Must Provide**: `order_id` (u64), `event_id` (String), `order_type` (YES/NO), `quantity` (u64 ≤500), `unit_price` (u64, lamports per share)
+- **Auto-Generated**: Order and escrow PDAs, total cost calculation
+- **Conditional**: Platform fee calculation
 
 **Pre-transaction Setup**:
 - Check user has sufficient SOL balance
@@ -574,9 +574,9 @@ async function placeOrder({ eventId, orderType, quantity, unitPrice }: OrderPara
 - `systemProgram`: Solana system program
 
 **Parameters**:
-- ✅ **Frontend Must Provide**: `order_id` (u64), `event_id` (String)
-- ⚡ **Auto-Generated**: Account PDAs
-- 🔧 **Conditional**: None
+- **Frontend Must Provide**: `order_id` (u64), `event_id` (String)
+- **Auto-Generated**: Account PDAs
+- **Conditional**: None
 
 **TypeScript Example**:
 ```typescript
@@ -655,9 +655,9 @@ async function cancelOrder(eventId: string, orderId: number) {
 - `systemProgram`: Solana system program
 
 **Parameters**:
-- ✅ **Frontend Must Provide**: `event_id` (String), `yes_order_id` (u64), `no_order_id` (u64)
-- ⚡ **Auto-Generated**: Matched pair PDA, match quantity calculation
-- 🔧 **Conditional**: Price sum validation (must equal ~1 SOL)
+- **Frontend Must Provide**: `event_id` (String), `yes_order_id` (u64), `no_order_id` (u64)
+- **Auto-Generated**: Matched pair PDA, match quantity calculation
+- **Conditional**: Price sum validation (must equal ~1 SOL)
 
 **Pre-transaction Setup**:
 - Identify compatible orders (YES price + NO price ≈ 1 SOL)
@@ -769,9 +769,9 @@ async function matchOrders(
 - `systemProgram`: Solana system program
 
 **Parameters**:
-- ✅ **Frontend Must Provide**: `event_id` (String), `matched_pair_id` (u64)
-- ⚡ **Auto-Generated**: Share token PDAs for both buyers
-- 🔧 **Conditional**: None
+- **Frontend Must Provide**: `event_id` (String), `matched_pair_id` (u64)
+- **Auto-Generated**: Share token PDAs for both buyers
+- **Conditional**: None
 
 **TypeScript Example**:
 ```typescript

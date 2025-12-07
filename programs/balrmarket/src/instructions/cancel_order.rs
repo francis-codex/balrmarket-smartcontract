@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
 use crate::state::{GlobalState, Event, Order, EscrowAccount, OrderStatus};
 use crate::events::OrderCancelled;
 use crate::error::ErrorCode;

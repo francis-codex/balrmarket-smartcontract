@@ -1,6 +1,6 @@
 # SECONDARY MARKET - COMPLETE IMPLEMENTATION GUIDE
 
-## 📋 Overview
+## Overview
 
 The secondary market enables peer-to-peer trading of shares **after the primary market closes** (when the match starts). It uses an **off-chain order matching engine** with **on-chain settlement** to minimize gas costs and maximize throughput.
 
@@ -8,7 +8,7 @@ The secondary market enables peer-to-peer trading of shares **after the primary 
 
 ---
 
-## 🏗️ ACCOUNT STRUCTURES
+## ACCOUNT STRUCTURES
 
 ### 1. SecondaryMarketState
 **Purpose**: Track secondary market status per event
@@ -216,7 +216,7 @@ pub transfer_history: Vec<Transfer>,   // Track ownership changes
 
 ---
 
-## 📝 INSTRUCTIONS
+## INSTRUCTIONS
 
 ### SECONDARY MARKET SETUP
 
@@ -522,7 +522,7 @@ struct Trade {
 
 ---
 
-## 💰 FEE STRUCTURE
+## FEE STRUCTURE
 
 **Platform Fee**: Same as primary market (configurable, max 5%)
 
@@ -583,7 +583,7 @@ Seller receives: 73.5 SOL
 
 ---
 
-## 🔄 WORKFLOW SUMMARY
+## WORKFLOW SUMMARY
 
 1. **Primary market closes** → `open_secondary_market()`
 2. **Seller lists shares** → `list_share_for_sale()` (shares locked)
@@ -611,7 +611,7 @@ Seller receives: 73.5 SOL
 
 ---
 
-## ✅ IMPLEMENTATION CHECKLIST
+## IMPLEMENTATION CHECKLIST
 
 - [ ] Create SecondaryMarketState account
 - [ ] Create SecondaryOrder account

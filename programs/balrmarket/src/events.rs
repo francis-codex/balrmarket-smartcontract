@@ -36,15 +36,6 @@ pub struct EventCreated {
 }
 
 #[event]
-pub struct ShareMintedOld {
-    pub event_id: String,
-    pub yes_owner: Pubkey,
-    pub no_owner: Pubkey,
-    pub quantity: u32,
-    pub timestamp: i64,
-}
-
-#[event]
 pub struct PrimaryMarketClosed {
     pub event_id: String,
     pub timestamp: i64,
